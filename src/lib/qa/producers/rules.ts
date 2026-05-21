@@ -20,23 +20,30 @@ export const rulesProducer: QaProducer = {
     }));
   },
   annotate(html, _findings): string {
-    // The rule we visualise inline is `image_placeholders` (the writer's
-    // "IMAGE N. Alt tag" markers). The text is matched at render-time —
-    // the finding payload only tells us which markers exist, not their
-    // positions, so we re-scan via cheerio. This keeps the Visualizer
-    // hop-free even when findings are stale relative to the body.
+    // Placeholder text often spans nested tags (Google's exported HTML wraps
+    // "IMAGE 1" in an <a> and ". Alt tag: ..." in the next <span>). A naive
+    // text-node walker can't see across that break, so we mark at the
+    // BLOCK level: any <p>/<li>/<div> whose flattened text matches the
+    // placeholder regex gets a red side-rule + tooltip.
     const $ = cheerio.load(html, null, false);
-    walkTextNodes($, (text) => {
-      if (!PLACEHOLDER_RE.test(text)) return null;
+    const tip = [
+      'WHAT — Placeholder image marker',
+      'WHY — The writer left "IMAGE N. Alt tag: …" text in the doc instead of embedding a real image. Reader sees the literal placeholder string; screen readers read it aloud. Fails WCAG 1.1.1.',
+      'FIX — Embed an <img> with descriptive alt, or run Auto-fix on the WCAG row.',
+    ].join('\n');
+    $('p, li, div').each((_, el) => {
+      const $el = $(el);
+      const text = $el.text().replace(/\s+/g, ' ');
+      if (!PLACEHOLDER_RE.test(text)) {
+        PLACEHOLDER_RE.lastIndex = 0;
+        return;
+      }
       PLACEHOLDER_RE.lastIndex = 0;
-      return text.replace(PLACEHOLDER_RE, (m) => {
-        const tip = [
-          'WHAT — Placeholder image marker',
-          'WHY — The writer left "IMAGE N. Alt tag: …" text in the doc instead of embedding a real image. Reader sees the literal placeholder string; screen readers read it aloud. Fails WCAG 1.1.1.',
-          'FIX — Embed an <img> with descriptive alt, or run Auto-fix on the WCAG row.',
-        ].join('\n');
-        return `<mark class="qa-mark qa-mark-fail" data-tip="${escapeHtml(tip)}" title="${escapeHtml(tip)}">${escapeHtml(m)}</mark>`;
-      });
+      const existing = ($el.attr('class') ?? '').trim();
+      if (existing.includes('qa-mark-fail-block')) return; // already marked
+      $el.attr('class', `${existing} qa-mark-fail-block`.trim());
+      $el.attr('data-tip', tip);
+      $el.attr('title', tip);
     });
     return $.html();
   },

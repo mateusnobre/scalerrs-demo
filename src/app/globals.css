@@ -96,6 +96,25 @@ html, body {
 }
 .qa-annotated mark.qa-mark:hover { filter: brightness(1.25); }
 
+/* Block-level fail mark — used when the offending text spans multiple
+   inline elements (e.g. Google's "IMAGE 1</a><span>. Alt tag</span>"). */
+.qa-annotated p.qa-mark-fail-block,
+.qa-annotated li.qa-mark-fail-block,
+.qa-annotated div.qa-mark-fail-block {
+  background: rgba(248, 113, 113, 0.10);
+  border-left: 3px solid rgba(248, 113, 113, 0.75);
+  padding: 6px 10px;
+  margin: 6px 0;
+  border-radius: 0 4px 4px 0;
+  cursor: help;
+}
+.qa-annotated.hide-fail p.qa-mark-fail-block,
+.qa-annotated.hide-fail li.qa-mark-fail-block,
+.qa-annotated.hide-fail div.qa-mark-fail-block {
+  background: transparent;
+  border-left-color: transparent;
+}
+
 /* Rich hover tooltip — replaces the slow / ugly native title popup.
    Uses data-tip attribute populated by each annotator. Lines split on \n. */
 .qa-annotated [data-tip]:hover::after {

@@ -65,6 +65,9 @@ export function annotateArticleHtml(opts: AnnotateOptions): AnnotateResult {
       }));
     if (myFindings.length === 0) continue;
     html = producer.annotate(html, myFindings);
+    // Counts mirror the DB findings, not the marked-DOM nodes, because
+    // some annotators mark per-block (one mark per paragraph) while the
+    // underlying finding is per-occurrence.
     for (const f of myFindings) {
       if (f.severity === 'fail') counts.fail++;
       else if (f.severity === 'warning') counts.warn++;
