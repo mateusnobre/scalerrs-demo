@@ -3,7 +3,7 @@
 import { start } from 'workflow/api';
 import { createClient } from '@/lib/supabase/server';
 import { processArticle } from '@/lib/workflow/process-article';
-import { autofixAltTags, autofixMeta } from '@/lib/workflow/autofix';
+import { autofixAltTags, autofixMeta, autofixPlaceholderAlts } from '@/lib/workflow/autofix';
 import { publishWordpress } from '@/lib/workflow/publish';
 import { suggestInternalLinks } from '@/lib/workflow/suggest-links';
 
@@ -32,6 +32,9 @@ export async function triggerAutofix(articleId: string, fixKind: string) {
       return;
     case 'rehost_images':
       await reprocess(articleId);
+      return;
+    case 'rewrite_placeholder_alts':
+      await start(autofixPlaceholderAlts, [articleId, org_id]);
       return;
     default:
       throw new Error(`Unknown fix kind: ${fixKind}`);

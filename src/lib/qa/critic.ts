@@ -91,6 +91,38 @@ Return at most 6 issues. Skip anything a rule-checker already catches
 quality only.`;
 }
 
+/**
+ * Rewrite a placeholder alt text so it passes WCAG 1.1.1:
+ *   - mentions the article's actual subject (the primary noun from H1)
+ *   - 6-15 descriptive words
+ *   - no generic placeholders ("image of", "case", "item", "product")
+ */
+export async function rewritePlaceholderAlt(opts: {
+  articleTitle: string;
+  h1: string;
+  marker: string;
+  oldAlt: string;
+  surroundingText: string;
+}): Promise<string> {
+  const { text } = await generateText({
+    model: model(),
+    system:
+      'You write WCAG 1.1.1-compliant alt text for ecommerce article images. ' +
+      'Strict rules: 6-15 descriptive words, mention the article\'s actual subject (e.g. "dog collar", "wallet"), ' +
+      'describe a specific visual feature (color, material, hardware, context). ' +
+      'No "image of" prefix. No generic nouns like "image", "case", "item", "product". No quotes in output.',
+    prompt: `Article title: ${opts.articleTitle}
+H1: ${opts.h1}
+Placeholder marker as the writer left it: ${opts.marker}
+Current (weak) alt text: ${opts.oldAlt}
+Nearby paragraph context (truncated):
+${opts.surroundingText.slice(0, 800)}
+
+Return ONLY the new alt text, nothing else.`,
+  });
+  return text.trim().replace(/^["']|["']$/g, '').replace(/[\r\n]+/g, ' ');
+}
+
 export async function rewriteAltText(image: ParsedImage, articleTitle: string, surroundingText: string): Promise<string> {
   const { text } = await generateText({
     model: model(),
