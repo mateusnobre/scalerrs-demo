@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { fmtMoney, fmtRelative } from '@/lib/utils';
+import { fmtMoney, fmtRelative, fmtDuration } from '@/lib/utils';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, RotateCcw, Send, Wand2 } from 'lucide-react';
+import { Sparkles, RotateCcw, Send, Wand2, RefreshCw } from 'lucide-react';
 import type { Article, QaCheck, Run, RunStep } from '@/lib/db/types';
-import { triggerAutofix, triggerPublish, reprocess, requestLinkSuggestions } from './actions';
+import { triggerAutofix, triggerPublish, reprocess, requestLinkSuggestions, replayFailedRun } from './actions';
 
 interface LinkSuggestion {
   id: string;
@@ -114,6 +114,22 @@ export function ArticleDetail({
           </div>
         </div>
         <div className="flex shrink-0 gap-2">
+          {article.status === 'failed' && (
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  await replayFailedRun(article.id);
+                  toast.success('Replay queued — picking up from last checkpoint');
+                })
+              }
+              title="Re-fire the workflow event. Already-completed steps are memoized."
+            >
+              <RefreshCw className="size-3.5" /> Replay failed run
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -427,6 +443,15 @@ function LinkSuggestions({ suggestions }: { suggestions: LinkSuggestion[] }) {
 }
 
 function RunTrace({ run, steps }: { run: Run | null; steps: RunStep[] }) {
+  // Live elapsed ticker — re-renders every 500ms while the run is active so
+  // viewers see the seconds counting up in real time.
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!run || run.status !== 'running') return;
+    const i = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(i);
+  }, [run?.status]);
+
   if (!run) {
     return (
       <Card>
@@ -434,31 +459,50 @@ function RunTrace({ run, steps }: { run: Run | null; steps: RunStep[] }) {
       </Card>
     );
   }
+
+  const totalMs = run.started_at
+    ? (run.completed_at ? new Date(run.completed_at).getTime() : now) - new Date(run.started_at).getTime()
+    : 0;
+  const elapsed = totalMs < 1000 ? `${totalMs}ms` : `${(totalMs / 1000).toFixed(1)}s`;
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="mono">Run {run.id.slice(0, 8)}</CardTitle>
-        <CardDescription>
-          status <Badge tone={STATUS_TONE[run.status] ?? 'neutral'}>{run.status}</Badge> · started {fmtRelative(run.started_at)} · spend {fmtMoney(run.cost_cents)}
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
+        <div>
+          <CardTitle className="mono">Run {run.id.slice(0, 8)}</CardTitle>
+          <CardDescription>
+            status <Badge tone={STATUS_TONE[run.status] ?? 'neutral'}>{run.status}</Badge> · started {fmtRelative(run.started_at)}
+          </CardDescription>
+        </div>
+        <div className="text-right">
+          <p className="mono text-2xl font-semibold tabular-nums text-[var(--accent)]">{elapsed}</p>
+          <p className="mono text-[11px] text-[var(--fg-3)]">{fmtMoney(run.cost_cents)} · {steps.length} steps</p>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <ol className="divide-y divide-[var(--border)]">
-          {steps.map((s) => (
-            <li
-              key={s.id}
-              className={`flex items-center justify-between gap-4 px-5 py-3 text-xs ${s.status === 'running' ? 'step-running' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="mono w-6 text-right text-[10px] text-[var(--fg-3)]">{s.position}</span>
-                <span className="mono text-[var(--fg-1)]">{s.name}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                {s.detail && <span className="text-[11px] text-[var(--fg-2)]">{s.detail}</span>}
-                <Badge tone={STATUS_TONE[s.status] ?? 'neutral'}>{s.status}</Badge>
-              </div>
-            </li>
-          ))}
+          {steps.map((s) => {
+            const dur = fmtDuration(s.started_at, s.completed_at);
+            return (
+              <li
+                key={s.id}
+                className={`flex items-center justify-between gap-4 px-5 py-2.5 text-xs ${s.status === 'running' ? 'step-running' : ''}`}
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="mono w-6 text-right text-[10px] text-[var(--fg-3)]">{s.position}</span>
+                  <span className="mono truncate text-[var(--fg-1)]">{s.name}</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  {s.detail && <span className="truncate text-[11px] text-[var(--fg-2)]">{s.detail}</span>}
+                  <span className="mono w-14 text-right text-[11px] text-[var(--fg-2)]">{dur}</span>
+                  {s.cost_cents > 0 && (
+                    <span className="mono w-12 text-right text-[11px] text-[var(--fg-3)]">{fmtMoney(s.cost_cents)}</span>
+                  )}
+                  <Badge tone={STATUS_TONE[s.status] ?? 'neutral'}>{s.status}</Badge>
+                </div>
+              </li>
+            );
+          })}
           {run.error && (
             <li className="px-5 py-3 text-xs text-red-300">Error: {run.error}</li>
           )}

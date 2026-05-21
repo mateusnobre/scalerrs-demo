@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { fmtMoney, fmtRelative } from '@/lib/utils';
 import { FileText, Network, Activity } from 'lucide-react';
+import { BatchButton } from '@/components/dashboard/batch-button';
 
 const STATUS_TONE: Record<string, 'pass' | 'warning' | 'fail' | 'info' | 'neutral' | 'accent'> = {
   ready_for_review: 'info',
@@ -40,9 +41,12 @@ export default async function Dashboard() {
           <p className="text-[11px] uppercase tracking-widest text-[var(--fg-3)]">Workspace</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Articles</h1>
         </div>
-        <Button asChild variant="accent">
-          <Link href="/articles/new">+ New article</Link>
-        </Button>
+        <div className="flex gap-2">
+          <BatchButton />
+          <Button asChild variant="accent">
+            <Link href="/articles/new">+ New article</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

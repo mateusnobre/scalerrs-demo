@@ -1,0 +1,201 @@
+{
+  "meta_title": "Best Leather Dog Collars: Pamper Your Pooch In Style!",
+  "meta_description": "Discover the best leather dog collars and elevate your pet's style with premium quality and comfort by choosing ‘The Dog Collar’ from Andar now!",
+  "article_title": "Best Leather Dog Collars",
+  "word_count": 1354,
+  "image_count": 0,
+  "link_count": 14,
+  "product_links": 11,
+  "qa_rules": [
+    {
+      "check_type": "image_count",
+      "severity": "fail",
+      "title": "Image count: 0",
+      "detail": "Target range 3-8. Found 0.",
+      "data": {
+        "count": 0,
+        "min": 3,
+        "max": 8
+      }
+    },
+    {
+      "check_type": "image_hosting",
+      "severity": "pass",
+      "title": "All images hosted on Google Drive",
+      "detail": "Every image is served from googleusercontent.com or drive.google.com.",
+      "data": {
+        "non_gdrive": []
+      },
+      "fix_available": false,
+      "fix_kind": "rehost_images"
+    },
+    {
+      "check_type": "image_alt_tags",
+      "severity": "pass",
+      "title": "All images have alt tags",
+      "detail": "Every image has descriptive alt text.",
+      "data": {
+        "missing": []
+      },
+      "fix_available": false,
+      "fix_kind": "rewrite_alt_tags"
+    },
+    {
+      "check_type": "product_links",
+      "severity": "fail",
+      "title": "Product links: 11",
+      "detail": "Target range 1-5. Found 11.",
+      "data": {
+        "count": 11,
+        "min": 1,
+        "max": 5,
+        "links": [
+          "https://www.andar.com/products/the-dog-collar",
+          "https://www.andar.com/products/the-dog-collar",
+          "https://www.andar.com/products/the-dog-collar",
+          "https://www.andar.com/products/the-dog-collar",
+          "https://www.andar.com/products/the-dog-collar",
+          "https://www.andar.com/collections/the-product-care",
+          "https://www.andar.com/products/leather-care-kit",
+          "https://www.andar.com/products/leather-cream",
+          "https://www.andar.com/products/the-dog-collar",
+          "https://www.andar.com/collections/the-cases"
+        ]
+      }
+    },
+    {
+      "check_type": "heading_h1",
+      "severity": "fail",
+      "title": "H1 count: 2",
+      "detail": "Article should have exactly one H1.",
+      "data": {
+        "count": 2
+      }
+    },
+    {
+      "check_type": "heading_hierarchy",
+      "severity": "pass",
+      "title": "Heading hierarchy clean",
+      "detail": "No H3/H4 without a matching H2 ancestor.",
+      "data": {
+        "orphans": 0
+      }
+    },
+    {
+      "check_type": "meta_title",
+      "severity": "pass",
+      "title": "Meta title: 53 chars",
+      "detail": "In recommended range.",
+      "data": {
+        "length": 53,
+        "value": "Best Leather Dog Collars: Pamper Your Pooch In Style!"
+      }
+    },
+    {
+      "check_type": "meta_description",
+      "severity": "pass",
+      "title": "Meta description: 144 chars",
+      "detail": "In recommended range.",
+      "data": {
+        "length": 144,
+        "value": "Discover the best leather dog collars and elevate your pet's style with premium quality and comfort by choosing ‘The Dog Collar’ from Andar now!"
+      }
+    },
+    {
+      "check_type": "image_placeholders",
+      "severity": "fail",
+      "title": "3 placeholder image marker(s) in body",
+      "detail": "The writer left \"IMAGE N. Alt tag: ...\" text in the doc instead of embedding real images. These need to be replaced with actual <img> elements before publishing.",
+      "data": {
+        "placeholders": [
+          {
+            "marker": "IMAGE 1 . Alt tag: “leather case”",
+            "alt": "leather case"
+          },
+          {
+            "marker": "IMAGE 2 . Alt tag: “leather casing”",
+            "alt": "leather casing"
+          },
+          {
+            "marker": "IMAGE 3 . Alt tag: “modern leather case”",
+            "alt": "modern leather case"
+          }
+        ]
+      }
+    },
+    {
+      "check_type": "word_count",
+      "severity": "pass",
+      "title": "Word count: 1354",
+      "detail": "Adequate length for SEO.",
+      "data": {
+        "word_count": 1354
+      }
+    }
+  ],
+  "qa_readability": [
+    {
+      "check_type": "readability:reading_level",
+      "severity": "fail",
+      "title": "Reading level: 16",
+      "detail": "Sentences requiring more than 16yr education. 16 occurrence(s) flagged.",
+      "data": {
+        "count": 16,
+        "examples": [
+          "Unexpected hard to read sentence, according to 6 out of 7 algorithms",
+          "Unexpected hard to read sentence, according to 5 out of 7 algorithms",
+          "Unexpected hard to read sentence, according to 6 out of 7 algorithms",
+          "Unexpected hard to read sentence, according to 4 out of 7 algorithms",
+          "Unexpected hard to read sentence, according to 6 out of 7 algorithms"
+        ]
+      }
+    },
+    {
+      "check_type": "readability:passive_voice",
+      "severity": "pass",
+      "title": "Passive voice: 1",
+      "detail": "Passive constructions (target: under 10% of sentences). 1 occurrence(s) flagged.",
+      "data": {
+        "count": 1,
+        "examples": [
+          "Unexpected use of the passive voice"
+        ]
+      }
+    },
+    {
+      "check_type": "readability:inclusive_language",
+      "severity": "fail",
+      "title": "Inclusive language: 8",
+      "detail": "Gendered, ableist, or otherwise non-inclusive phrasing. 8 occurrence(s) flagged.",
+      "data": {
+        "count": 8,
+        "examples": [
+          "Unexpected potentially insensitive use of `easy`, try not to use it",
+          "Unexpected potentially insensitive use of `easy`, try not to use it",
+          "Unexpected potentially insensitive use of `easily`, try not to use it",
+          "Unexpected potentially insensitive use of `just`, try not to use it",
+          "Unexpected potentially insensitive use of `Just`, try not to use it"
+        ]
+      }
+    },
+    {
+      "check_type": "readability:sentence_spacing",
+      "severity": "pass",
+      "title": "Sentence spacing: 0",
+      "detail": "Inconsistent spacing between sentences. No issues found.",
+      "data": {
+        "count": 0,
+        "examples": []
+      }
+    },
+    {
+      "check_type": "readability:flesch_score",
+      "severity": "fail",
+      "title": "Flesch reading ease 33",
+      "detail": "Reading ease is too low (<50). Cut sentence length and syllable density.",
+      "data": {
+        "score": 32.7
+      }
+    }
+  ]
+}

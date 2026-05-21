@@ -67,3 +67,22 @@ export async function requestLinkSuggestions(articleId: string) {
     data: { article_id: articleId, org_id },
   });
 }
+
+/**
+ * Replay a failed run. Picks up where the last successful checkpoint left
+ * off conceptually — practically, we re-fire the same event. Inngest's
+ * step memoization means already-completed steps in *this* function won't
+ * re-execute (they're keyed by `step.run(id, ...)` and the run lineage),
+ * but for a fresh-process this just kicks a new run.
+ *
+ * For the demo what matters: the user sees a failed run, hits Replay, and
+ * the article reaches `ready_for_review` without any manual cleanup.
+ */
+export async function replayFailedRun(articleId: string) {
+  const { supabase, org_id, gdoc_url } = await orgFor(articleId);
+  await supabase.from('articles').update({ status: 'pending' }).eq('id', articleId);
+  await inngest.send({
+    name: 'article/process.requested',
+    data: { article_id: articleId, org_id, gdoc_url },
+  });
+}
