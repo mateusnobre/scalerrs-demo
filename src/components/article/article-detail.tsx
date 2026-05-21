@@ -199,7 +199,7 @@ export function ArticleDetail({
           <LinksTab suggestions={suggestions} />
         </TabsContent>
         <TabsContent value="preview">
-          <PreviewTab html={article.article_html} />
+          <PreviewTab cleanHtml={article.article_html} annotatedHtml={visualizer.html} />
         </TabsContent>
         <TabsContent value="html">
           <HtmlTab

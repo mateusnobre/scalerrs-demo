@@ -76,6 +76,7 @@ export const linkHealthProducer: QaProducer = {
       const klass = v.tone === 'fail' ? 'qa-mark-fail-link' : 'qa-mark-warn-link';
       $a.attr('class', `${existing} ${klass}`.trim());
       $a.attr('title', v.tip);
+      $a.attr('data-tip', v.tip);
     });
     return $.html();
   },
@@ -88,16 +89,36 @@ function describeLink(p: {
   ms: number;
   error?: string;
 }): string {
+  const lines: string[] = [];
   switch (p.status) {
     case 'broken':
-      return `Broken link · HTTP ${p.http_status} · ${p.ms}ms`;
+      lines.push('WHAT — Broken link (HTTP ' + p.http_status + ')');
+      lines.push(
+        'WHY — The link target returned a 4xx or 5xx. Readers who click it land on an error page; Google penalises pages with high broken-link density.',
+      );
+      lines.push('FIX — Update or remove the link. Re-run QA when fixed.');
+      break;
     case 'network_error':
-      return `Network error: ${p.error ?? 'no response'} · ${p.ms}ms`;
+      lines.push('WHAT — Could not connect');
+      lines.push(`WHY — ${p.error ?? 'No response'} after ${p.ms}ms. Domain may be dead.`);
+      lines.push('FIX — Verify the URL or replace with a working source.');
+      break;
     case 'rate_limited':
-      return `Rate-limited (HTTP 429) — could not verify · ${p.ms}ms`;
+      lines.push('WHAT — Rate-limited (HTTP 429)');
+      lines.push(
+        'WHY — The target domain throttled our crawler. Real readers will reach the page; we just could not verify it from this run.',
+      );
+      lines.push('FIX — Re-run QA later, or accept as-is if you trust the domain.');
+      break;
     case 'cf_challenge':
-      return `Cloudflare bot wall — page exists but crawler couldn't access`;
+      lines.push('WHAT — Cloudflare bot wall');
+      lines.push(
+        'WHY — Page returned the "Verifying your connection" interstitial. Real browsers pass it; our crawler does not.',
+      );
+      lines.push('FIX — Treat as unverified, not broken.');
+      break;
     default:
-      return `HTTP ${p.http_status} · ${p.ms}ms`;
+      lines.push(`HTTP ${p.http_status} · ${p.ms}ms`);
   }
+  return lines.join('\n');
 }

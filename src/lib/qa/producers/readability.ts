@@ -42,9 +42,14 @@ export const readabilityProducer: QaProducer = {
         const re = new RegExp(`\\b${escapeRegex(token)}\\b`, 'gi');
         if (re.test(out)) {
           re.lastIndex = 0;
-          out = out.replace(re, (m) =>
-            `<mark class="qa-mark qa-mark-warn" title="Editorial flag (retext): this word/phrase was caught by retext. Consider rephrasing.">${escapeHtml(m)}</mark>`,
-          );
+          out = out.replace(re, (m) => {
+            const tip = [
+              'WHAT — Readability flag (retext)',
+              'WHY — Caught by retext as either passive voice, non-inclusive phrasing, or a complex-sentence trigger. Hurts the Flesch score and grades the article above the 12-year-old reading-level target.',
+              'FIX — Rephrase to active voice, swap the word, or shorten the sentence.',
+            ].join('\n');
+            return `<mark class="qa-mark qa-mark-warn" data-tip="${escapeHtml(tip)}" title="${escapeHtml(tip)}">${escapeHtml(m)}</mark>`;
+          });
           changed = true;
         }
       }

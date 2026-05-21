@@ -29,9 +29,14 @@ export const rulesProducer: QaProducer = {
     walkTextNodes($, (text) => {
       if (!PLACEHOLDER_RE.test(text)) return null;
       PLACEHOLDER_RE.lastIndex = 0;
-      return text.replace(PLACEHOLDER_RE, (m) =>
-        `<mark class="qa-mark qa-mark-fail" title="Placeholder image marker — the writer left this in instead of embedding a real image. Fails WCAG 1.1.1.">${escapeHtml(m)}</mark>`,
-      );
+      return text.replace(PLACEHOLDER_RE, (m) => {
+        const tip = [
+          'WHAT — Placeholder image marker',
+          'WHY — The writer left "IMAGE N. Alt tag: …" text in the doc instead of embedding a real image. Reader sees the literal placeholder string; screen readers read it aloud. Fails WCAG 1.1.1.',
+          'FIX — Embed an <img> with descriptive alt, or run Auto-fix on the WCAG row.',
+        ].join('\n');
+        return `<mark class="qa-mark qa-mark-fail" data-tip="${escapeHtml(tip)}" title="${escapeHtml(tip)}">${escapeHtml(m)}</mark>`;
+      });
     });
     return $.html();
   },

@@ -82,12 +82,23 @@ export function annotateArticleHtml(opts: AnnotateOptions): AnnotateResult {
     const src = $el.attr('src') ?? '';
     const initialAlt = initialAltMap.get(src);
     if (!alt || alt.length < 3) {
+      const tip = [
+        'WHAT — Missing or too-short alt text',
+        'WHY — Screen readers announce "image" with no description. Fails WCAG 1.1.1.',
+        'FIX — Add a 6-15 word alt that names the article subject and a visible feature.',
+      ].join('\n');
       $el.attr('class', `${($el.attr('class') ?? '')} qa-mark-fail-img`.trim());
-      $el.attr('title', 'Missing or too-short alt text.');
+      $el.attr('title', tip);
+      $el.attr('data-tip', tip);
       counts.fail++;
     } else if (initialAlt !== undefined && initialAlt !== alt) {
+      const tip = [
+        'WHAT — AI rewrote this alt text',
+        `WHY — Original was "${initialAlt}". New: "${alt}". Better accessibility + SEO.`,
+      ].join('\n');
       $el.attr('class', `${($el.attr('class') ?? '')} qa-mark-fix-img`.trim());
-      $el.attr('title', `AI rewrote alt: "${initialAlt}" → "${alt}"`);
+      $el.attr('title', tip);
+      $el.attr('data-tip', tip);
       counts.fix++;
     }
   });
