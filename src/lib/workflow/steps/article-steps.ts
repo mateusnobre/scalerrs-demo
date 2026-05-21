@@ -5,35 +5,36 @@
 import { createServiceClient } from '@/lib/supabase/service';
 import { extractDocId, fetchDocHtml } from '@/lib/google/docs';
 import { parseGoogleDocHtml } from '@/lib/google/parser';
-import { runRuleChecks } from '@/lib/qa/rules';
-import { runReadability } from '@/lib/qa/readability';
-import { aiCritic, regenerateMetaDescription, regenerateMetaTitle } from '@/lib/qa/critic';
-import { renderArticleHtml } from '@/lib/html/render';
+import { regenerateMetaDescription, regenerateMetaTitle } from '@/lib/qa/critic';
 import { rehostImage } from '@/lib/rehost/blob';
-import { detectAndEmitFaqSchema } from '@/lib/seo/faq-schema';
-import { buildArticleJsonLd, detectHowTo, injectJsonLd, type SchemaEmission } from '@/lib/seo/jsonld';
-import { checkLinkHealth, summarise } from '@/lib/qa/link-health';
+import { renderArticle } from '@/lib/render/article-renderer';
+import { runProducer } from '@/lib/qa/producer';
+import { supabasePersist } from '@/lib/qa/persist-supabase';
+import {
+  rulesProducer,
+  readabilityProducer,
+  linkHealthProducer,
+  criticProducer,
+} from '@/lib/qa/producers';
 import type { ParsedDoc } from '@/lib/db/types';
 
-// Source-aware fetch. Branches on the URL:
-//   - "docx://uploaded" sentinel: pre-parsed by the upload server action,
-//     html lives in articles.raw_doc.raw_html. Skip the remote fetch.
-//   - else: treat as a Google Doc URL.
-export async function fetchDocStep(article_id: string, gdoc_url: string) {
+// Source-aware fetch. Dispatches on the ArticleSource discriminated union
+// loaded from the article row — no string-typed sentinels.
+import { loadArticleSourceById, type ArticleSource } from '@/lib/sources/article-source';
+export { loadArticleSourceById };
+export type { ArticleSource };
+
+export async function loadSourceStep(article_id: string): Promise<ArticleSource> {
   'use step';
-  if (gdoc_url.startsWith('docx://')) {
-    const db = createServiceClient();
-    const { data, error } = await db
-      .from('articles')
-      .select('raw_doc')
-      .eq('id', article_id)
-      .single();
-    if (error) throw error;
-    const html = (data?.raw_doc as { raw_html?: string } | null)?.raw_html ?? '';
-    if (!html) throw new Error('Uploaded .docx article has no pre-parsed html');
-    return { html, bytes: html.length };
+  return loadArticleSourceById(article_id);
+}
+
+export async function fetchDocStep(source: ArticleSource) {
+  'use step';
+  if (source.kind === 'docx_upload') {
+    return { html: source.preloadedHtml, bytes: source.preloadedHtml.length };
   }
-  const docId = extractDocId(gdoc_url);
+  const docId = extractDocId(source.url);
   const { html, bytes } = await fetchDocHtml(docId, { maxAttempts: 3 });
   return { html, bytes };
 }
@@ -56,152 +57,48 @@ export async function parseAndPersistStep(article_id: string, html: string) {
 
 export async function readabilityQaStep(article_id: string, org_id: string, doc: ParsedDoc) {
   'use step';
-  const db = createServiceClient();
-  const findings = await runReadability(doc);
-  await db.from('qa_checks').delete().eq('article_id', article_id).like('check_type', 'readability:%');
-  if (findings.length) {
-    await db.from('qa_checks').insert(
-      findings.map((f) => ({
-        article_id,
-        org_id,
-        check_type: f.check_type,
-        severity: f.severity,
-        title: f.title,
-        detail: f.detail,
-        data: f.data,
-      })),
-    );
-  }
-  const fails = findings.filter((f) => f.severity === 'fail').length;
-  return { fails, total: findings.length };
+  const r = await runProducer(readabilityProducer, doc, {
+    article_id,
+    org_id,
+    persist: supabasePersist(),
+  });
+  return { fails: r.fails, total: r.total };
 }
 
-/**
- * Link-health QA. HEADs every outbound link (with a GET fallback for
- * hostile servers) and writes one qa_check row per failure mode:
- *   - links:broken         — 4xx/5xx that isn't 429
- *   - links:rate_limited   — 429 (warning, not fail — domain might be live)
- *   - links:cf_challenge   — Cloudflare bot wall (warning — can't verify)
- *   - links:network_error  — DNS, timeout, ECONNREFUSED
- * The data column stores every probe so the Visualizer can mark `<a>` tags.
- */
+// ---- QA Producer step wrappers ----
+//
+// Each QA Step is now a four-line wrapper around runProducer(producer, doc, …).
+// The Producer Adapter owns its findings shape AND its inline annotator.
+// Persistence is shared via supabasePersist().
+
 export async function linkHealthQaStep(article_id: string, org_id: string, doc: ParsedDoc) {
   'use step';
-  const db = createServiceClient();
-  const probes = await checkLinkHealth(doc.links, { timeoutMs: 7000, concurrency: 6 });
-  const s = summarise(probes);
-  await db.from('qa_checks').delete().eq('article_id', article_id).like('check_type', 'links:%');
-  const rows: Record<string, unknown>[] = [];
-  if (s.broken.length) {
-    rows.push({
-      article_id,
-      org_id,
-      check_type: 'links:broken',
-      severity: 'fail',
-      title: `${s.broken.length} broken link(s) (4xx / 5xx)`,
-      detail: s.broken.map((p) => `${p.http_status} ${p.url}`).join(' · '),
-      data: { probes: s.broken },
-    });
-  }
-  if (s.networkError.length) {
-    rows.push({
-      article_id,
-      org_id,
-      check_type: 'links:network_error',
-      severity: 'fail',
-      title: `${s.networkError.length} link(s) failed to connect`,
-      detail: s.networkError.map((p) => `${p.url} — ${p.error ?? 'timeout'}`).join(' · '),
-      data: { probes: s.networkError },
-    });
-  }
-  if (s.rateLimited.length) {
-    rows.push({
-      article_id,
-      org_id,
-      check_type: 'links:rate_limited',
-      severity: 'warning',
-      title: `${s.rateLimited.length} link(s) rate-limited (429)`,
-      detail: `Could not verify these targets; domain throttled our crawler. Re-run later.`,
-      data: { probes: s.rateLimited },
-    });
-  }
-  if (s.cfChallenge.length) {
-    rows.push({
-      article_id,
-      org_id,
-      check_type: 'links:cf_challenge',
-      severity: 'warning',
-      title: `${s.cfChallenge.length} link(s) behind Cloudflare bot wall`,
-      detail: 'Page returned the CF "Verifying your connection" interstitial. Real users will reach the page; our crawler cannot.',
-      data: { probes: s.cfChallenge },
-    });
-  }
-  if (s.ok.length > 0 && rows.length === 0) {
-    rows.push({
-      article_id,
-      org_id,
-      check_type: 'links:ok',
-      severity: 'pass',
-      title: `All ${s.ok.length} links resolve`,
-      detail: 'Every outbound link returned 2xx/3xx within the timeout.',
-      data: { count: s.ok.length },
-    });
-  }
-  if (rows.length > 0) await db.from('qa_checks').insert(rows);
-  return {
-    broken: s.broken.length,
-    rateLimited: s.rateLimited.length,
-    cfChallenge: s.cfChallenge.length,
-    networkError: s.networkError.length,
-    ok: s.ok.length,
-    total: probes.length,
-  };
+  const r = await runProducer(linkHealthProducer, doc, {
+    article_id,
+    org_id,
+    persist: supabasePersist(),
+  });
+  return { broken: r.fails, warnings: r.warnings, ok: r.passes, total: r.total };
 }
 
 export async function ruleQaStep(article_id: string, org_id: string, doc: ParsedDoc) {
   'use step';
-  const db = createServiceClient();
-  const results = runRuleChecks(doc);
-  await db.from('qa_checks').delete().eq('article_id', article_id).like('check_type', 'rule:%');
-  if (results.length) {
-    await db.from('qa_checks').insert(
-      results.map((r) => ({
-        article_id,
-        org_id,
-        check_type: `rule:${r.check_type}`,
-        severity: r.severity,
-        title: r.title,
-        detail: r.detail,
-        data: r.data ?? null,
-        fix_available: r.fix_available ?? false,
-        fix_kind: r.fix_kind ?? null,
-      })),
-    );
-  }
-  const fails = results.filter((r) => r.severity === 'fail').length;
-  return { fails, total: results.length };
+  const r = await runProducer(rulesProducer, doc, {
+    article_id,
+    org_id,
+    persist: supabasePersist(),
+  });
+  return { fails: r.fails, total: r.total };
 }
 
 export async function aiCriticStep(article_id: string, org_id: string, doc: ParsedDoc) {
   'use step';
-  const db = createServiceClient();
-  const report = await aiCritic(doc);
-  await db.from('qa_checks').delete().eq('article_id', article_id).like('check_type', 'ai:%');
-  if (report.issues.length) {
-    await db.from('qa_checks').insert(
-      report.issues.map((i) => ({
-        article_id,
-        org_id,
-        check_type: `ai:${i.check_type}`,
-        severity: i.severity,
-        title: i.title,
-        detail: i.detail,
-        fix_available: !!i.fix_kind,
-        fix_kind: i.fix_kind,
-      })),
-    );
-  }
-  return { issues: report.issues.length, overall: report.overall_severity };
+  const r = await runProducer(criticProducer, doc, {
+    article_id,
+    org_id,
+    persist: supabasePersist(),
+  });
+  return { issues: r.total, fails: r.fails };
 }
 
 export async function autogenMetaDescStep(article_id: string, doc: ParsedDoc) {
@@ -256,41 +153,31 @@ export async function renderHtmlStep(
 ) {
   'use step';
   const db = createServiceClient();
-  let html = renderArticleHtml(doc, { rehostMap });
-  const faq = detectAndEmitFaqSchema(html);
-  html = faq.html;
-  if (faq.inserted) {
+  const render = renderArticle(doc, { rehostMap, publisherName: 'Andar' });
+
+  if (render.faq.injected) {
     await db.from('qa_checks').insert({
       article_id,
       org_id,
       check_type: 'seo:faq_schema',
       severity: 'pass',
-      title: `Injected FAQPage JSON-LD with ${faq.questions} Q&A`,
+      title: `Injected FAQPage JSON-LD with ${render.faq.questions} Q&A`,
       detail: 'schema.org/FAQPage block emitted before the FAQ heading.',
-      data: { questions: faq.questions },
+      data: { questions: render.faq.questions },
     });
   }
-  const blocks: SchemaEmission[] = [];
-  const article = buildArticleJsonLd({
-    headline: doc.headings.find((h) => h.level === 1)?.text ?? doc.title,
-    description: doc.meta_description,
-    publisherName: 'Andar',
-  });
-  blocks.push(article);
-  const howTo = detectHowTo(html);
-  if (howTo) {
-    blocks.push(howTo);
+  if (render.howTo.injected) {
     await db.from('qa_checks').insert({
       article_id,
       org_id,
       check_type: 'seo:howto_schema',
       severity: 'pass',
-      title: `Detected HowTo with ${(howTo.jsonld as { step?: unknown[] }).step?.length ?? 0} steps`,
+      title: `Detected HowTo with ${render.howTo.steps} steps`,
       detail: 'schema.org/HowTo block emitted.',
     });
   }
-  html = injectJsonLd(html, blocks);
-  await db.from('articles').update({ article_html: html, cost_cents }).eq('id', article_id);
+
+  await db.from('articles').update({ article_html: render.html, cost_cents }).eq('id', article_id);
   await db.from('article_versions').insert({
     article_id,
     org_id,
@@ -298,7 +185,7 @@ export async function renderHtmlStep(
     meta_title: doc.meta_title,
     meta_description: doc.meta_description,
     article_title: doc.headings.find((h) => h.level === 1)?.text ?? doc.title,
-    article_html: html,
+    article_html: render.html,
   });
-  return { bytes: html.length };
+  return { bytes: render.bytes };
 }

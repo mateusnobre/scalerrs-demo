@@ -5,30 +5,17 @@
 // orchestrator — it has no Node.js access, only step calls + workflow
 // primitives like `sleep` and `createHook`.
 //
-// Why Workflow DevKit (not an external orchestrator):
-//   - No `someOrchestrator.createFunction({...}, handler)` boilerplate.
-//   - No `step.run("id", cb)` wrappers — each `'use step'` function is
-//     auto-memoized by Workflow.
-//   - Fan-out to the internal-linking engine uses `start()` wrapped in a
-//     step (per WDK rule: `start()` cannot be called directly in workflow
-//     context).
-//
-// What stayed the same:
-//   - Per-step row in `run_steps` so the UI's live trace keeps working.
-//   - Per-article snapshot in `article_versions` for full audit history.
-//   - $0.50 cost cap (enforced in the orchestrator via FatalError).
+// Reads top-to-bottom: every business step is a `session.run(name, position,
+// () => fn(), format)` call. The RunSession Module owns begin/end/fail rows,
+// cost accumulation, and run finalisation — orchestrator only declares the
+// sequence + cost cap.
 
 import { FatalError } from 'workflow';
 import { start } from 'workflow/api';
-import {
-  createRun,
-  beginStep,
-  endStep,
-  failStepRow,
-  finalizeRun,
-} from './db-steps';
+import { createRunSession } from './run-session';
 import {
   fetchDocStep,
+  loadSourceStep,
   parseAndPersistStep,
   readabilityQaStep,
   ruleQaStep,
@@ -51,97 +38,114 @@ async function fanOutSuggestLinks(article_id: string, org_id: string) {
   await start(suggestInternalLinks, [article_id, org_id]);
 }
 
-export async function processArticle(
-  article_id: string,
-  org_id: string,
-  gdoc_url: string,
-) {
+export async function processArticle(article_id: string, org_id: string) {
   'use workflow';
 
-  const run_id = await createRun(article_id, org_id);
-  let totalCost = 0;
+  // The ArticleSource (gdoc URL or pre-parsed .docx upload) is reconstituted
+  // from the article row. Server actions write the row first, then dispatch
+  // the workflow with just (article_id, org_id) — no source plumbing through
+  // workflow args.
+  const source = await loadSourceStep(article_id);
+  const session = createRunSession({ article_id, org_id });
+  await session.begin();
 
-  const trackCost = (c: number) => {
-    totalCost += c;
-    if (totalCost > COST_CAP_CENTS) {
-      throw new FatalError(`Cost cap exceeded ($${(totalCost / 100).toFixed(2)})`);
+  const enforceCostCap = () => {
+    if (session.totalCost > COST_CAP_CENTS) {
+      throw new FatalError(`Cost cap exceeded ($${(session.totalCost / 100).toFixed(2)})`);
     }
   };
 
   try {
-    // 1. fetch (handles both gdoc URL and pre-uploaded .docx sentinel)
-    const sFetch = await beginStep(run_id, org_id, 'fetch-doc', 1);
-    const { html, bytes } = await fetchDocStep(article_id, gdoc_url);
-    await endStep(sFetch, `${(bytes / 1024).toFixed(1)} KB`);
-
-    // 2. parse
-    const sParse = await beginStep(run_id, org_id, 'parse', 2);
-    const doc = await parseAndPersistStep(article_id, html);
-    await endStep(
-      sParse,
-      `${doc.images.length} images, ${doc.links.length} links, ${doc.word_count} words`,
+    const { html, bytes } = await session.run(
+      'fetch-doc',
+      1,
+      () => fetchDocStep(source),
+      (r) => ({ detail: `${(r.bytes / 1024).toFixed(1)} KB · ${source.kind}` }),
     );
 
-    // 3. rule QA
-    const sRule = await beginStep(run_id, org_id, 'rule-qa', 3);
-    const rule = await ruleQaStep(article_id, org_id, doc);
-    await endStep(sRule, `${rule.fails} failing · ${rule.total} total`);
-
-    // 4. readability QA
-    const sRead = await beginStep(run_id, org_id, 'readability-qa', 4);
-    const read = await readabilityQaStep(article_id, org_id, doc);
-    await endStep(sRead, `${read.fails} failing · ${read.total} total`);
-
-    // 4.5 link-health QA (HEAD/GET every outbound link, flag 404 etc.)
-    const sLink = await beginStep(run_id, org_id, 'link-health', 45);
-    const link = await linkHealthQaStep(article_id, org_id, doc);
-    await endStep(
-      sLink,
-      `${link.broken + link.networkError} broken · ${link.rateLimited + link.cfChallenge} unverifiable · ${link.ok} ok`,
+    const doc = await session.run(
+      'parse',
+      2,
+      () => parseAndPersistStep(article_id, html),
+      (d) => ({ detail: `${d.images.length} images, ${d.links.length} links, ${d.word_count} words` }),
     );
 
-    // 5. AI critic
-    const sAI = await beginStep(run_id, org_id, 'ai-critic', 5);
-    const ai = await aiCriticStep(article_id, org_id, doc);
-    trackCost(2);
-    await endStep(sAI, `${ai.issues} editorial issues — ${ai.overall}`, 2);
+    await session.run(
+      'rule-qa',
+      3,
+      () => ruleQaStep(article_id, org_id, doc),
+      (r) => ({ detail: `${r.fails} failing · ${r.total} total` }),
+    );
 
-    // 6. autogen meta desc if missing/short
+    await session.run(
+      'readability-qa',
+      4,
+      () => readabilityQaStep(article_id, org_id, doc),
+      (r) => ({ detail: `${r.fails} failing · ${r.total} total` }),
+    );
+
+    await session.run(
+      'link-health',
+      45,
+      () => linkHealthQaStep(article_id, org_id, doc),
+      (r) => ({ detail: `${r.broken} broken · ${r.warnings} unverifiable · ${r.ok} ok` }),
+    );
+
+    await session.run(
+      'ai-critic',
+      5,
+      () => aiCriticStep(article_id, org_id, doc),
+      (r) => ({ detail: `${r.issues} editorial issues · ${r.fails} fail`, cost: 2 }),
+    );
+    enforceCostCap();
+
     if (!doc.meta_description || doc.meta_description.length < 120) {
-      const sMD = await beginStep(run_id, org_id, 'autogen-meta-desc', 6);
-      const r = await autogenMetaDescStep(article_id, doc);
-      trackCost(1);
-      await endStep(sMD, `${r.length} chars`, 1);
+      await session.run(
+        'autogen-meta-desc',
+        6,
+        () => autogenMetaDescStep(article_id, doc),
+        (r) => ({ detail: `${r.length} chars`, cost: 1 }),
+      );
+      enforceCostCap();
     }
 
-    // 7. autogen meta title if missing/short
     if (!doc.meta_title || doc.meta_title.length < 30) {
-      const sMT = await beginStep(run_id, org_id, 'autogen-meta-title', 7);
-      const r = await autogenMetaTitleStep(article_id, doc);
-      trackCost(1);
-      await endStep(sMT, `${r.length} chars`, 1);
+      await session.run(
+        'autogen-meta-title',
+        7,
+        () => autogenMetaTitleStep(article_id, doc),
+        (r) => ({ detail: `${r.length} chars`, cost: 1 }),
+      );
+      enforceCostCap();
     }
 
-    // 8. rehost images
-    const sRehost = await beginStep(run_id, org_id, 'rehost-images', 8);
-    const { rehostMap, rehosted } = await rehostImagesStep(article_id, org_id, doc);
-    await endStep(sRehost, `${rehosted} rehosted`);
+    const { rehostMap } = await session.run(
+      'rehost-images',
+      8,
+      () => rehostImagesStep(article_id, org_id, doc),
+      (r) => ({ detail: `${r.rehosted} rehosted` }),
+    );
 
-    // 9. render final HTML + schema injection
-    const sRender = await beginStep(run_id, org_id, 'render-html', 9);
-    const render = await renderHtmlStep(article_id, org_id, doc, rehostMap, totalCost);
-    await endStep(sRender, `${(render.bytes / 1024).toFixed(1)} KB`);
+    const render = await session.run(
+      'render-html',
+      9,
+      () => renderHtmlStep(article_id, org_id, doc, rehostMap, session.totalCost),
+      (r) => ({ detail: `${(r.bytes / 1024).toFixed(1)} KB` }),
+    );
 
-    // 10. mark ready
-    await finalizeRun(run_id, article_id, 'succeeded', totalCost);
+    await session.complete();
 
-    // Fan out: independently scored internal-link suggestions.
+    // Fan out: independently-scored internal-link suggestions.
     await fanOutSuggestLinks(article_id, org_id);
 
-    return { article_id, run_id, cost_cents: totalCost, html_bytes: render.bytes };
+    return {
+      article_id,
+      run_id: session.id,
+      cost_cents: session.totalCost,
+      html_bytes: render.bytes,
+    };
   } catch (err) {
-    const msg = (err as Error).message;
-    await finalizeRun(run_id, article_id, 'failed', totalCost, msg);
+    await session.fail((err as Error).message);
     throw err;
   }
 }

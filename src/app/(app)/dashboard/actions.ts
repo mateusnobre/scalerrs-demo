@@ -41,15 +41,14 @@ export async function startBatch(count: number) {
     created_by: user.id,
     gdoc_id,
     gdoc_url: url,
+    source_kind: 'gdoc' as const,
     status: 'pending' as const,
   }));
 
   const { data: inserted, error } = await supabase.from('articles').insert(rows).select('id');
   if (error) throw error;
 
-  await Promise.all(
-    inserted.map((a) => start(processArticle, [a.id, org_id, url])),
-  );
+  await Promise.all(inserted.map((a) => start(processArticle, [a.id, org_id])));
 
   revalidatePath('/dashboard');
   return { dispatched: inserted.length };

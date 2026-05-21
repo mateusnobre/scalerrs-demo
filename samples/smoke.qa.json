@@ -232,53 +232,18 @@
   ],
   "qa_links": [
     {
-      "check_type": "links:rate_limited",
-      "severity": "warning",
-      "title": "6 link(s) rate-limited (429)",
-      "detail": "Could not verify.",
+      "check_type": "links:broken",
+      "severity": "fail",
+      "title": "1 broken link(s) (4xx / 5xx)",
+      "detail": "404 https://www.andar.com/products/the-dog-collar",
       "data": {
         "probes": [
           {
             "url": "https://www.andar.com/products/the-dog-collar",
-            "http_status": 429,
-            "status": "rate_limited",
-            "ms": 374,
+            "http_status": 404,
+            "status": "broken",
+            "ms": 1959,
             "final_url": "https://www.andar.com/products/the-dog-collar"
-          },
-          {
-            "url": "https://www.andar.com/collections/the-product-care",
-            "http_status": 429,
-            "status": "rate_limited",
-            "ms": 163,
-            "final_url": "https://www.andar.com/collections/the-product-care"
-          },
-          {
-            "url": "https://www.andar.com/products/leather-care-kit",
-            "http_status": 429,
-            "status": "rate_limited",
-            "ms": 363,
-            "final_url": "https://www.andar.com/products/leather-care-kit"
-          },
-          {
-            "url": "https://www.andar.com/products/leather-cream",
-            "http_status": 429,
-            "status": "rate_limited",
-            "ms": 85,
-            "final_url": "https://www.andar.com/products/leather-cream"
-          },
-          {
-            "url": "https://www.andar.com/collections/the-cases",
-            "http_status": 429,
-            "status": "rate_limited",
-            "ms": 53,
-            "final_url": "https://www.andar.com/collections/the-cases"
-          },
-          {
-            "url": "https://www.andar.com/",
-            "http_status": 429,
-            "status": "rate_limited",
-            "ms": 57,
-            "final_url": "https://www.andar.com/"
           }
         ]
       }
@@ -287,65 +252,65 @@
   "link_probes": [
     {
       "url": "https://www.andar.com/products/the-dog-collar",
-      "http_status": 429,
-      "status": "rate_limited",
-      "ms": 374,
+      "http_status": 404,
+      "status": "broken",
+      "ms": 1959,
       "final_url": "https://www.andar.com/products/the-dog-collar"
     },
     {
       "url": "https://drive.google.com/file/d/1vl_da5-h_bccKoUrdlmC-KDkRWsazvjO/view",
       "http_status": 200,
       "status": "ok",
-      "ms": 1723,
-      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1vl_da5-h_bccKoUrdlmC-KDkRWsazvjO%2Fview&dsh=S-283311521%3A1779383535521945&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1vl_da5-h_bccKoUrdlmC-KDkRWsazvjO%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2PasAc3iN841Suy5nsqvs4DMN9f7RQDj8j3FZge-4fhdvrOent5vN4Eb31-NVA51STySj4AlkYg"
+      "ms": 1780,
+      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1vl_da5-h_bccKoUrdlmC-KDkRWsazvjO%2Fview&dsh=S1695698266%3A1779385543151940&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1vl_da5-h_bccKoUrdlmC-KDkRWsazvjO%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2PasGchIqLItjRnr5CqTaTgWDQQXSTsTPReWC05OtinLn6f7S6nVt8CwUiM-PPE981w-piqVjoA"
     },
     {
       "url": "https://drive.google.com/file/d/16B8Rwecab8Ze2dgXzGqJ-DHVT8MXBKjr/view",
       "http_status": 200,
       "status": "ok",
-      "ms": 1713,
-      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F16B8Rwecab8Ze2dgXzGqJ-DHVT8MXBKjr%2Fview&dsh=S1695698266%3A1779383535508075&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F16B8Rwecab8Ze2dgXzGqJ-DHVT8MXBKjr%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2PatU48_GvxNWXO7EBj02quMtC1YyPxB53rezOuveGtg7tBJnUKShy1X6w4JODFTRgyHBujMYYQ"
+      "ms": 1758,
+      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F16B8Rwecab8Ze2dgXzGqJ-DHVT8MXBKjr%2Fview&dsh=S-1457364621%3A1779385543144789&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F16B8Rwecab8Ze2dgXzGqJ-DHVT8MXBKjr%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2PavEmVVcSnTwYrIt_TreWVcDX9mZ1ClW8PoThAo6ez1eIAvaJDi-N_FFMj-ob9MrtmCV-C4svQ"
     },
     {
       "url": "https://www.andar.com/collections/the-product-care",
-      "http_status": 429,
-      "status": "rate_limited",
-      "ms": 163,
+      "http_status": 200,
+      "status": "ok",
+      "ms": 2726,
       "final_url": "https://www.andar.com/collections/the-product-care"
     },
     {
       "url": "https://drive.google.com/file/d/1WCLKwQMyyOrUjZc6JHXojsiarr7A20yb/view",
       "http_status": 200,
       "status": "ok",
-      "ms": 1840,
-      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1WCLKwQMyyOrUjZc6JHXojsiarr7A20yb%2Fview&dsh=S-1909816441%3A1779383535618367&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1WCLKwQMyyOrUjZc6JHXojsiarr7A20yb%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2PassP2iNfv3hcsxyD-uxqEm28ofIqakR9pfEX3MlNuk1GCmTIvX3AjjeuHhsVtFBlzbejy-ELQ"
+      "ms": 1690,
+      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1WCLKwQMyyOrUjZc6JHXojsiarr7A20yb%2Fview&dsh=S-1340827793%3A1779385543095809&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1WCLKwQMyyOrUjZc6JHXojsiarr7A20yb%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2PasE0pdyfKii9gyXUzzXxBw_bv8fYX0mjEWHIW3NjHDyVpUKn8r5LT7MxAs8gVdHgC8rH3bP"
     },
     {
       "url": "https://www.andar.com/products/leather-care-kit",
-      "http_status": 429,
-      "status": "rate_limited",
-      "ms": 363,
+      "http_status": 200,
+      "status": "ok",
+      "ms": 2031,
       "final_url": "https://www.andar.com/products/leather-care-kit"
     },
     {
       "url": "https://www.andar.com/products/leather-cream",
-      "http_status": 429,
-      "status": "rate_limited",
-      "ms": 85,
+      "http_status": 200,
+      "status": "ok",
+      "ms": 1193,
       "final_url": "https://www.andar.com/products/leather-cream"
     },
     {
       "url": "https://www.andar.com/collections/the-cases",
-      "http_status": 429,
-      "status": "rate_limited",
-      "ms": 53,
+      "http_status": 200,
+      "status": "ok",
+      "ms": 1285,
       "final_url": "https://www.andar.com/collections/the-cases"
     },
     {
       "url": "https://www.andar.com/",
-      "http_status": 429,
-      "status": "rate_limited",
-      "ms": 57,
+      "http_status": 200,
+      "status": "ok",
+      "ms": 1051,
       "final_url": "https://www.andar.com/"
     }
   ]
