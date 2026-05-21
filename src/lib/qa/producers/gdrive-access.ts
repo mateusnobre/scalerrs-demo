@@ -17,7 +17,9 @@ export const gdriveAccessProducer: QaProducer = {
     for (const img of doc.images) if (isDriveUrl(img.src)) candidates.add(img.src);
     if (candidates.size === 0) return [];
 
-    const probes: GDriveProbe[] = await Promise.all([...candidates].map(probeGDriveAccess));
+    const probes: GDriveProbe[] = await Promise.all(
+      [...candidates].map((u) => probeGDriveAccess(u)),
+    );
     const privateUrls = probes.filter((p) => p.verdict === 'private');
     const unreachable = probes.filter((p) => p.verdict === 'unreachable');
     const findings: QaCheckInput[] = [];
