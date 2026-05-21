@@ -45,3 +45,6 @@ next-env.d.ts
 .env*.local
 
 LOOM_SCRIPT.md
+
+# supabase CLI runtime state
+supabase/.temp/

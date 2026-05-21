@@ -12,6 +12,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, RotateCcw, Send, Wand2, RefreshCw } from 'lucide-react';
 import type { Article, QaCheck, Run, RunStep } from '@/lib/db/types';
 import { triggerAutofix, triggerPublish, reprocess, requestLinkSuggestions, replayFailedRun } from './actions';
+import { Visualizer } from './visualizer';
+
+interface VisualizerData {
+  html: string;
+  counts: { fail: number; warn: number; fix: number };
+  metaTitleChanged: boolean;
+  metaDescriptionChanged: boolean;
+  initialMetaTitle: string | null;
+  initialMetaDescription: string | null;
+}
 
 interface LinkSuggestion {
   id: string;
@@ -41,6 +51,7 @@ export function ArticleDetail({
   steps: initialSteps,
   versions,
   suggestions: initialSuggestions,
+  visualizer,
 }: {
   article: Article;
   checks: QaCheck[];
@@ -48,6 +59,7 @@ export function ArticleDetail({
   steps: RunStep[];
   versions: { id: string; reason: string; created_at: string }[];
   suggestions: LinkSuggestion[];
+  visualizer: VisualizerData;
 }) {
   const [article, setArticle] = useState(initial);
   const [checks, setChecks] = useState(initialChecks);
@@ -180,8 +192,9 @@ export function ArticleDetail({
         <StatCard label="Link ideas" value={suggestions.length} tone="info" />
       </div>
 
-      <Tabs defaultValue="qa">
+      <Tabs defaultValue="visualizer">
         <TabsList>
+          <TabsTrigger value="visualizer">Visualizer</TabsTrigger>
           <TabsTrigger value="qa">QA ({checks.length})</TabsTrigger>
           <TabsTrigger value="meta">Meta</TabsTrigger>
           <TabsTrigger value="links">Internal links ({suggestions.length})</TabsTrigger>
@@ -190,6 +203,19 @@ export function ArticleDetail({
           <TabsTrigger value="trace">Run trace</TabsTrigger>
           <TabsTrigger value="history">History ({versions.length})</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="visualizer">
+          <Visualizer
+            html={visualizer.html}
+            counts={visualizer.counts}
+            metaTitleChanged={visualizer.metaTitleChanged}
+            metaDescriptionChanged={visualizer.metaDescriptionChanged}
+            initialMetaTitle={visualizer.initialMetaTitle}
+            initialMetaDescription={visualizer.initialMetaDescription}
+            currentMetaTitle={article.meta_title}
+            currentMetaDescription={article.meta_description}
+          />
+        </TabsContent>
 
         <TabsContent value="qa">
           <QaList checks={checks} articleId={article.id} pending={pending} startTransition={startTransition} />
