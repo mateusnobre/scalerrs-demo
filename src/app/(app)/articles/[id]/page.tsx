@@ -13,7 +13,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
     .maybeSingle();
   if (!article) notFound();
 
-  const [{ data: checks }, { data: runs }, { data: versions }] = await Promise.all([
+  const [{ data: checks }, { data: runs }, { data: versions }, { data: suggestions }] = await Promise.all([
     supabase
       .from('qa_checks')
       .select('*')
@@ -32,6 +32,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
       .eq('article_id', id)
       .order('created_at', { ascending: false })
       .limit(20),
+    supabase
+      .from('internal_link_suggestions')
+      .select('id, target_url, target_title, anchor_text, score, reason')
+      .eq('article_id', id)
+      .order('score', { ascending: false }),
   ]);
 
   const latestRun = runs?.[0] ?? null;
@@ -52,6 +57,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
       run={latestRun}
       steps={steps as never}
       versions={versions ?? []}
+      suggestions={suggestions ?? []}
     />
   );
 }

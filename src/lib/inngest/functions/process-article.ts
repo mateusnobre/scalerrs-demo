@@ -6,6 +6,7 @@ import { runRuleChecks } from '@/lib/qa/rules';
 import { aiCritic, regenerateMetaDescription, regenerateMetaTitle } from '@/lib/qa/critic';
 import { renderArticleHtml } from '@/lib/html/render';
 import { rehostImage } from '@/lib/rehost/blob';
+import { detectAndEmitFaqSchema } from '@/lib/seo/faq-schema';
 import type { ParsedDoc } from '@/lib/db/types';
 
 // Budget cap. If a single run costs more than $0.50 worth of model + bytes,
@@ -226,10 +227,23 @@ export const processArticle = inngest.createFunction(
         return map;
       });
 
-      // 8. Render final HTML
+      // 8. Render final HTML + inject FAQ JSON-LD if an FAQ section exists.
       const finalHtml = await step.run('render-html', async () => {
         const stepId = await startStep('render-html', 8);
-        const html = renderArticleHtml(parsed, { rehostMap });
+        const renderedHtml = renderArticleHtml(parsed, { rehostMap });
+        const faq = detectAndEmitFaqSchema(renderedHtml);
+        const html = faq.html;
+        if (faq.inserted) {
+          await db.from('qa_checks').insert({
+            article_id,
+            org_id,
+            check_type: 'seo:faq_schema',
+            severity: 'pass',
+            title: `Injected FAQPage JSON-LD with ${faq.questions} Q&A`,
+            detail: 'schema.org/FAQPage block emitted before the FAQ heading. SERP eligibility unlocked.',
+            data: { questions: faq.questions },
+          });
+        }
         await db.from('articles').update({ article_html: html, cost_cents: totalCost }).eq('id', article_id);
         await db.from('article_versions').insert({
           article_id,
@@ -252,6 +266,14 @@ export const processArticle = inngest.createFunction(
           completed_at: new Date().toISOString(),
           cost_cents: totalCost,
         }).eq('id', runId);
+      });
+
+      // 10. Fan out: ask the internal-linking engine to score this article
+      //     against the org's crawled sitemap URLs. Runs as a separate
+      //     Inngest function so it can fail/retry independently.
+      await step.sendEvent('fanout-suggest-links', {
+        name: 'article/suggest.links',
+        data: { article_id, org_id },
       });
 
       return { article_id, run_id: runId, cost_cents: totalCost, html_bytes: finalHtml.length };

@@ -6,20 +6,22 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-0)] focus-visible:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: 'bg-zinc-900 text-zinc-50 hover:bg-zinc-900/90',
-        outline: 'border border-zinc-200 bg-white hover:bg-zinc-100',
-        ghost: 'hover:bg-zinc-100',
-        danger: 'bg-red-600 text-white hover:bg-red-700',
-        accent: 'bg-emerald-600 text-white hover:bg-emerald-700',
+        default:
+          'bg-[var(--bg-3)] text-[var(--fg-0)] border border-[var(--border-strong)] hover:bg-[var(--border)]',
+        outline:
+          'bg-transparent text-[var(--fg-1)] border border-[var(--border)] hover:border-[var(--border-strong)] hover:text-[var(--fg-0)]',
+        ghost: 'text-[var(--fg-1)] hover:bg-[var(--bg-2)] hover:text-[var(--fg-0)]',
+        danger: 'bg-red-600/90 text-white hover:bg-red-600',
+        accent: 'bg-[var(--accent)] text-[var(--accent-fg)] hover:opacity-90 font-semibold',
       },
       size: {
-        default: 'h-9 px-4 py-2',
+        default: 'h-9 px-3.5',
         sm: 'h-8 px-3 text-xs',
-        lg: 'h-10 px-6',
+        lg: 'h-10 px-5',
         icon: 'h-9 w-9',
       },
     },

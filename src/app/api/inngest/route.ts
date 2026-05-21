@@ -4,10 +4,19 @@ import { processArticle } from '@/lib/inngest/functions/process-article';
 import { autofixAltTags } from '@/lib/inngest/functions/autofix-alt';
 import { autofixMeta } from '@/lib/inngest/functions/autofix-meta';
 import { publishWordpress } from '@/lib/inngest/functions/publish';
+import { ingestSitemap } from '@/lib/inngest/functions/ingest-sitemap';
+import { suggestInternalLinks } from '@/lib/inngest/functions/suggest-links';
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [processArticle, autofixAltTags, autofixMeta, publishWordpress],
+  functions: [
+    processArticle,
+    autofixAltTags,
+    autofixMeta,
+    publishWordpress,
+    ingestSitemap,
+    suggestInternalLinks,
+  ],
 });
 
 // Inngest needs a sync endpoint that responds quickly; we route it via Vercel

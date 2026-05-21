@@ -26,4 +26,10 @@ export type Events = {
   'article/publish.wordpress': {
     data: { article_id: string; org_id: string };
   };
+  'article/suggest.links': {
+    data: { article_id: string; org_id: string };
+  };
+  'sitemap/ingest.requested': {
+    data: { sitemap_id: string; org_id: string; url: string };
+  };
 };

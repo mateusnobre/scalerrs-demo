@@ -59,3 +59,11 @@ export async function reprocess(articleId: string) {
     data: { article_id: articleId, org_id, gdoc_url },
   });
 }
+
+export async function requestLinkSuggestions(articleId: string) {
+  const { org_id } = await orgFor(articleId);
+  await inngest.send({
+    name: 'article/suggest.links',
+    data: { article_id: articleId, org_id },
+  });
+}
