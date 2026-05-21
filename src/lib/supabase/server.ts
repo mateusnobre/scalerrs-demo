@@ -4,6 +4,10 @@ import { cookies } from 'next/headers';
 // MUST use getAll/setAll (≥0.6). The deprecated get/set/remove API silently
 // drops session cookies through Server Action redirects on Vercel, producing
 // an invisible login loop. See: feedback_supabase_ssr_cookie_api.
+export function isSupabaseConfigured() {
+  return !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+}
+
 export async function createClient() {
   const cookieStore = await cookies();
   return createServerClient(
