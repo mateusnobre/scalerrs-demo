@@ -17,9 +17,52 @@
 // Requires SUPABASE_SERVICE_ROLE_KEY in .env.local.
 
 import 'dotenv/config';
+import { readFileSync, existsSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { config as loadEnv } from 'dotenv';
 loadEnv({ path: '.env.local', override: true });
+
+// Read the rendered HTML + QA findings produced by `pnpm smoke` against the
+// assessment doc. Embedding the real artifacts (instead of stub strings)
+// makes the Visualizer work on cold open — every overlay is grounded in the
+// actual article body the pipeline produced.
+function loadSmoke() {
+  const htmlPath = 'samples/smoke.html';
+  const qaPath = 'samples/smoke.qa.json';
+  if (!existsSync(htmlPath) || !existsSync(qaPath)) {
+    throw new Error(
+      'samples/smoke.{html,qa.json} not found. Run `pnpm smoke` before `pnpm seed`.',
+    );
+  }
+  return {
+    html: readFileSync(htmlPath, 'utf8'),
+    qa: JSON.parse(readFileSync(qaPath, 'utf8')) as {
+      meta_title: string | null;
+      meta_description: string | null;
+      article_title: string;
+      word_count: number;
+      image_count: number;
+      link_count: number;
+      product_links: number;
+      qa_rules: Array<{
+        check_type: string;
+        severity: 'pass' | 'warning' | 'fail';
+        title: string;
+        detail: string;
+        data?: Record<string, unknown>;
+        fix_available?: boolean;
+        fix_kind?: string;
+      }>;
+      qa_readability: Array<{
+        check_type: string;
+        severity: 'pass' | 'warning' | 'fail';
+        title: string;
+        detail: string;
+        data?: Record<string, unknown>;
+      }>;
+    },
+  };
+}
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -124,7 +167,7 @@ async function seedSitemap() {
 async function seedReadyArticle(userId: string) {
   const articleId = crypto.randomUUID();
   const startedAt = new Date(Date.now() - 1000 * 60 * 8);
-  const completedAt = new Date(Date.now() - 1000 * 60 * 8 + 8400);
+  const { html: smokeHtml, qa: smokeQa } = loadSmoke();
 
   await db.from('articles').insert({
     id: articleId,
@@ -133,27 +176,26 @@ async function seedReadyArticle(userId: string) {
     gdoc_id: '1s0fZsDcXJtiwrqUT1fVInS6q1yCZwVKkyCEGcxUiIYY',
     gdoc_url: SAMPLE_DOC_URL,
     status: 'ready_for_review',
-    article_title: 'Best Leather Dog Collars',
-    meta_title: 'Best Leather Dog Collars: Pamper Your Pooch In Style!',
-    meta_description:
-      "Discover the best leather dog collars and elevate your pet's style with premium quality and comfort by choosing The Dog Collar from Andar now!",
+    article_title: smokeQa.article_title,
+    meta_title: smokeQa.meta_title,
+    meta_description: smokeQa.meta_description,
     cost_cents: 4,
-    article_html:
-      '<h1>Best Leather Dog Collars</h1><p>Welcome to our guide where we delve into the realm of the best leather dog collars…</p>',
+    article_html: smokeHtml,
     raw_doc: {
-      title: 'Best Leather Dog Collars',
-      meta_title: 'Best Leather Dog Collars: Pamper Your Pooch In Style!',
-      meta_description: "Discover the best leather dog collars…",
-      headings: [{ level: 1, text: 'Best Leather Dog Collars' }],
+      title: smokeQa.article_title,
+      meta_title: smokeQa.meta_title,
+      meta_description: smokeQa.meta_description,
+      headings: [{ level: 1, text: smokeQa.article_title }],
       paragraphs: 24,
-      word_count: 1354,
+      word_count: smokeQa.word_count,
       images: [],
       links: [],
-      raw_html: '<h1>Best Leather Dog Collars</h1>',
+      raw_html: smokeHtml,
     },
   });
 
   // Run + steps with realistic durations totalling ~8.4s.
+  const completedAt = new Date(startedAt.getTime() + 8400);
   const { data: run } = await db
     .from('runs')
     .insert({
@@ -199,67 +241,63 @@ async function seedReadyArticle(userId: string) {
     }),
   );
 
-  // A representative slice of QA checks.
-  await db.from('qa_checks').insert([
+  // Insert every QA finding the real pipeline produced (rules + readability)
+  // so the QA tab and the Visualizer agree.
+  const ruleRows = smokeQa.qa_rules.map((r) => ({
+    article_id: articleId,
+    org_id: ANDAR_ORG,
+    check_type: r.check_type.startsWith('rule:') ? r.check_type : `rule:${r.check_type}`,
+    severity: r.severity,
+    title: r.title,
+    detail: r.detail,
+    data: r.data ?? null,
+    fix_available: r.fix_available ?? false,
+    fix_kind: r.fix_kind ?? null,
+  }));
+  const readabilityRows = smokeQa.qa_readability.map((r) => ({
+    article_id: articleId,
+    org_id: ANDAR_ORG,
+    check_type: r.check_type,
+    severity: r.severity,
+    title: r.title,
+    detail: r.detail,
+    data: r.data ?? null,
+  }));
+  // Plus an AI-critic finding (we can't run the real critic without spending
+  // tokens in seed; a representative warning keeps the AI category visible
+  // alongside the deterministic checks).
+  const aiRows = [
     {
       article_id: articleId,
       org_id: ANDAR_ORG,
-      check_type: 'rule:image_count',
-      severity: 'fail',
-      title: 'Image count: 0',
-      detail: 'Target range 3-8. Found 0.',
+      check_type: 'ai:filler_phrases',
+      severity: 'warning' as const,
+      title: 'Filler phrases detected',
+      detail: '"delve into the realm of" and "through our meticulous research" weaken authority.',
+      fix_available: true,
+      fix_kind: 'rewrite_intro',
     },
-    {
-      article_id: articleId,
-      org_id: ANDAR_ORG,
-      check_type: 'rule:image_placeholders',
-      severity: 'fail',
-      title: '3 placeholder image marker(s) in body',
-      detail: 'Writer left "IMAGE N. Alt tag: ..." text in the doc instead of embedding real images.',
-    },
-    {
-      article_id: articleId,
-      org_id: ANDAR_ORG,
-      check_type: 'rule:product_links',
-      severity: 'fail',
-      title: 'Product links: 11',
-      detail: 'Target range 1-5. Found 11.',
-    },
-    {
-      article_id: articleId,
-      org_id: ANDAR_ORG,
-      check_type: 'readability:flesch_score',
-      severity: 'fail',
-      title: 'Flesch reading ease 33',
-      detail: 'Reading ease is too low (<50). Cut sentence length and syllable density.',
-    },
-    {
-      article_id: articleId,
-      org_id: ANDAR_ORG,
-      check_type: 'readability:inclusive_language',
-      severity: 'fail',
-      title: 'Inclusive language: 8',
-      detail: 'Gendered, ableist, or otherwise non-inclusive phrasing. 8 occurrences flagged.',
-    },
+  ];
+  // FAQ JSON-LD finding (we know smoke injected it).
+  const seoRows = [
     {
       article_id: articleId,
       org_id: ANDAR_ORG,
       check_type: 'seo:faq_schema',
-      severity: 'pass',
+      severity: 'pass' as const,
       title: 'Injected FAQPage JSON-LD with 4 Q&A',
       detail: 'schema.org/FAQPage block emitted before the FAQ heading. SERP eligibility unlocked.',
     },
     {
       article_id: articleId,
       org_id: ANDAR_ORG,
-      check_type: 'ai:filler_phrases',
-      severity: 'warning',
-      title: 'Filler phrases detected',
-      detail: '"delve into the realm of" and "through our meticulous research" weaken authority.',
-      fix_available: true,
-      fix_kind: 'rewrite_intro',
+      check_type: 'seo:article_schema',
+      severity: 'pass' as const,
+      title: 'Article JSON-LD emitted',
+      detail: 'schema.org/Article block emitted at the top of the body.',
     },
-  ]);
+  ];
+  await db.from('qa_checks').insert([...ruleRows, ...readabilityRows, ...aiRows, ...seoRows]);
 
   // Pre-populate internal-link suggestions from the seeded sitemap.
   await db.from('internal_link_suggestions').insert([
