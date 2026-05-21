@@ -242,7 +242,7 @@
             "url": "https://www.andar.com/products/the-dog-collar",
             "http_status": 404,
             "status": "broken",
-            "ms": 3033,
+            "ms": 2676,
             "final_url": "https://www.andar.com/products/the-dog-collar"
           }
         ]
@@ -284,63 +284,63 @@
       "url": "https://www.andar.com/products/the-dog-collar",
       "http_status": 404,
       "status": "broken",
-      "ms": 3033,
+      "ms": 2676,
       "final_url": "https://www.andar.com/products/the-dog-collar"
     },
     {
       "url": "https://drive.google.com/file/d/1vl_da5-h_bccKoUrdlmC-KDkRWsazvjO/view",
       "http_status": 200,
       "status": "ok",
-      "ms": 1679,
-      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1vl_da5-h_bccKoUrdlmC-KDkRWsazvjO%2Fview&dsh=S774295493%3A1779391446107380&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1vl_da5-h_bccKoUrdlmC-KDkRWsazvjO%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2Pav8-UWQphaYZmA2fh8TQxZc421iPdr628GsW_D3iGQdRPrso4-ySv9y7rKzNRfgaKOY38P6qA"
+      "ms": 1691,
+      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1vl_da5-h_bccKoUrdlmC-KDkRWsazvjO%2Fview&dsh=S1295079838%3A1779392649921320&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1vl_da5-h_bccKoUrdlmC-KDkRWsazvjO%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2PashLAr5R2JcKhtu_2gHBdnwtRhY2llehzlHqVUxQFb1ORJrTNE43nsLi85_dmiybc3VogeG"
     },
     {
       "url": "https://drive.google.com/file/d/16B8Rwecab8Ze2dgXzGqJ-DHVT8MXBKjr/view",
       "http_status": 200,
       "status": "ok",
-      "ms": 1678,
-      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F16B8Rwecab8Ze2dgXzGqJ-DHVT8MXBKjr%2Fview&dsh=S-1457364621%3A1779391446104543&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F16B8Rwecab8Ze2dgXzGqJ-DHVT8MXBKjr%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2PaslVUh9g1LlOvr5ia4CG2LfQkjny9zTvLW73iOiZlF132mw8ljJTdevosCUNiERVYWNbgdfxQ"
+      "ms": 1752,
+      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F16B8Rwecab8Ze2dgXzGqJ-DHVT8MXBKjr%2Fview&dsh=S624311888%3A1779392650010736&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F16B8Rwecab8Ze2dgXzGqJ-DHVT8MXBKjr%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2PatBIPh2Br4V-TLfDJDleKjIcco32Wgz-ecx122IGD3FahuXgdOui-xlw9imKP-nainnfxMm"
     },
     {
       "url": "https://www.andar.com/collections/the-product-care",
       "http_status": 200,
       "status": "ok",
-      "ms": 3125,
+      "ms": 363,
       "final_url": "https://www.andar.com/collections/the-product-care"
     },
     {
       "url": "https://drive.google.com/file/d/1WCLKwQMyyOrUjZc6JHXojsiarr7A20yb/view",
       "http_status": 200,
       "status": "ok",
-      "ms": 1675,
-      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1WCLKwQMyyOrUjZc6JHXojsiarr7A20yb%2Fview&dsh=S1295079838%3A1779391446107984&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1WCLKwQMyyOrUjZc6JHXojsiarr7A20yb%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2Pavly7SRIIsbJEltOjJFH7LuUnAdQh1kIwLFbi45eQrNjoLStSC1ZlJC9o79tjCMKey7Gp-I_w"
+      "ms": 1761,
+      "final_url": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1WCLKwQMyyOrUjZc6JHXojsiarr7A20yb%2Fview&dsh=S-718688926%3A1779392650008768&followup=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1WCLKwQMyyOrUjZc6JHXojsiarr7A20yb%2Fview&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&ifkv=AWa2PauhgQvSjX7U7rT3or541gRLedLdHhmttnmvp_wsT5V9zMy6W-ZHgbUh1t3VUbnWhUv9VH_1"
     },
     {
       "url": "https://www.andar.com/products/leather-care-kit",
       "http_status": 200,
       "status": "ok",
-      "ms": 1807,
+      "ms": 2727,
       "final_url": "https://www.andar.com/products/leather-care-kit"
     },
     {
       "url": "https://www.andar.com/products/leather-cream",
       "http_status": 200,
       "status": "ok",
-      "ms": 970,
+      "ms": 1602,
       "final_url": "https://www.andar.com/products/leather-cream"
     },
     {
       "url": "https://www.andar.com/collections/the-cases",
       "http_status": 200,
       "status": "ok",
-      "ms": 1928,
+      "ms": 1316,
       "final_url": "https://www.andar.com/collections/the-cases"
     },
     {
       "url": "https://www.andar.com/",
       "http_status": 200,
       "status": "ok",
-      "ms": 1749,
+      "ms": 1132,
       "final_url": "https://www.andar.com/"
     }
   ]
