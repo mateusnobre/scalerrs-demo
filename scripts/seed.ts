@@ -269,6 +269,8 @@ async function seedReadyArticle(userId: string) {
     title: r.title,
     detail: r.detail,
     data: r.data ?? null,
+    fix_available: false,
+    fix_kind: null,
   }));
   const linkRows = (smokeQa.qa_links ?? []).map((r) => ({
     article_id: articleId,
@@ -278,6 +280,8 @@ async function seedReadyArticle(userId: string) {
     title: r.title,
     detail: r.detail,
     data: r.data ?? null,
+    fix_available: false,
+    fix_kind: null,
   }));
   // Plus an AI-critic finding (we can't run the real critic without spending
   // tokens in seed; a representative warning keeps the AI category visible
@@ -303,6 +307,8 @@ async function seedReadyArticle(userId: string) {
       severity: 'pass' as const,
       title: 'Injected FAQPage JSON-LD with 4 Q&A',
       detail: 'schema.org/FAQPage block emitted before the FAQ heading. SERP eligibility unlocked.',
+      fix_available: false,
+      fix_kind: null,
     },
     {
       article_id: articleId,
@@ -311,9 +317,17 @@ async function seedReadyArticle(userId: string) {
       severity: 'pass' as const,
       title: 'Article JSON-LD emitted',
       detail: 'schema.org/Article block emitted at the top of the body.',
+      fix_available: false,
+      fix_kind: null,
     },
   ];
-  await db.from('qa_checks').insert([...ruleRows, ...readabilityRows, ...linkRows, ...aiRows, ...seoRows]);
+  const allChecks = [...ruleRows, ...readabilityRows, ...linkRows, ...aiRows, ...seoRows];
+  const { error: qaErr } = await db.from('qa_checks').insert(allChecks);
+  if (qaErr) {
+    console.error('  qa_checks insert FAILED:', qaErr.message, qaErr.details ?? '', qaErr.hint ?? '');
+    throw qaErr;
+  }
+  console.log(`  inserted ${allChecks.length} qa_checks rows`);
 
   // Pre-populate internal-link suggestions from the seeded sitemap.
   await db.from('internal_link_suggestions').insert([

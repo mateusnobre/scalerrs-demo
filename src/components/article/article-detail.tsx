@@ -16,6 +16,7 @@ import {
   replayFailedRun,
 } from './actions';
 import { Visualizer } from './visualizer';
+import { DownloadHtmlButton } from './download-html-button';
 import { useArticleSync } from './use-article-sync';
 import {
   QaTab,
@@ -133,6 +134,13 @@ export function ArticleDetail({
           >
             <Wand2 className="size-3.5" /> Suggest links
           </Button>
+          <DownloadHtmlButton
+            filename={article.article_title ?? article.gdoc_id}
+            metaTitle={article.meta_title}
+            metaDescription={article.meta_description}
+            articleTitle={article.article_title}
+            html={article.article_html}
+          />
           <Button
             variant="accent"
             size="sm"
@@ -194,7 +202,13 @@ export function ArticleDetail({
           <PreviewTab html={article.article_html} />
         </TabsContent>
         <TabsContent value="html">
-          <HtmlTab html={article.article_html} />
+          <HtmlTab
+            html={article.article_html}
+            articleTitle={article.article_title}
+            metaTitle={article.meta_title}
+            metaDescription={article.meta_description}
+            filename={article.article_title ?? article.gdoc_id}
+          />
         </TabsContent>
         <TabsContent value="trace">
           <TraceTab run={run} steps={steps} />
