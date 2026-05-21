@@ -55,15 +55,31 @@ export async function runReadability(doc: ParsedDoc): Promise<ReadabilityFinding
 
   const findings: ReadabilityFinding[] = [];
 
-  findings.push(
-    summarise(
-      'readability:reading_level',
-      'Reading level',
-      `Sentences requiring more than ${READABILITY_AGE_TARGET}yr education`,
-      grouped['retext-readability'],
-      { fail: 5, warn: 2 },
-    ),
+  // Reading-level findings carry sentence-level positions (start/end offsets
+  // into the plain text). We slice each flagged sentence out of the source
+  // text and ship it as data.sentences so the Visualizer's annotator can
+  // mark whole paragraphs containing them.
+  const readingSentences: string[] = [];
+  for (const m of grouped['retext-readability']) {
+    const start = (m as { place?: { start?: { offset?: number } } }).place?.start?.offset;
+    const end = (m as { place?: { end?: { offset?: number } } }).place?.end?.offset;
+    if (start != null && end != null && end > start) {
+      const sentence = text.slice(start, end).trim();
+      if (sentence.length >= 10) readingSentences.push(sentence);
+    }
+  }
+  const readingFinding = summarise(
+    'readability:reading_level',
+    'Reading level',
+    `Sentences requiring more than ${READABILITY_AGE_TARGET}yr education`,
+    grouped['retext-readability'],
+    { fail: 5, warn: 2 },
   );
+  readingFinding.data = {
+    ...(readingFinding.data ?? {}),
+    sentences: readingSentences,
+  };
+  findings.push(readingFinding);
 
   findings.push(
     summarise(
