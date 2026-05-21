@@ -13,6 +13,7 @@ import { parseGoogleDocHtml } from '../src/lib/google/parser';
 import { runRuleChecks } from '../src/lib/qa/rules';
 import { runReadability } from '../src/lib/qa/readability';
 import { checkLinkHealth, summarise as summariseLinks } from '../src/lib/qa/link-health';
+import { gdriveAccessProducer } from '../src/lib/qa/producers/gdrive-access';
 import { renderArticleHtml } from '../src/lib/html/render';
 import { buildArticleJsonLd, detectHowTo, injectJsonLd, type SchemaEmission } from '../src/lib/seo/jsonld';
 import { detectAndEmitFaqSchema } from '../src/lib/seo/faq-schema';
@@ -71,7 +72,19 @@ async function main() {
       detail: 'Page exists but crawler blocked.',
       data: { probes: linkSummary.cfChallenge },
     });
-  const allQa = [...rules, ...readability, ...linkRows];
+  console.log('  probing Google Drive image share state…');
+  const gdriveFindings = await gdriveAccessProducer.produceChecks(doc);
+  const gdriveRows = gdriveFindings.map((f) => ({
+    check_type: `gdrive:${f.check_type}`,
+    severity: f.severity,
+    title: f.title,
+    detail: f.detail,
+    data: f.data ?? {},
+  }));
+  if (gdriveFindings.length) {
+    console.log(`  GDrive: ${gdriveFindings.length} finding(s) — ${gdriveFindings.map((f) => f.title).join(' · ')}`);
+  }
+  const allQa = [...rules, ...readability, ...linkRows, ...gdriveRows];
   const fail = allQa.filter((r) => r.severity === 'fail').length;
   const warn = allQa.filter((r) => r.severity === 'warning').length;
   const pass = allQa.filter((r) => r.severity === 'pass').length;
@@ -134,6 +147,7 @@ ${html}
         qa_rules: rules,
         qa_readability: readability,
         qa_links: linkRows,
+        qa_gdrive: gdriveRows,
         link_probes: linkProbes,
       },
       null,

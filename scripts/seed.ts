@@ -67,6 +67,13 @@ function loadSmoke() {
         detail: string;
         data?: Record<string, unknown>;
       }>;
+      qa_gdrive?: Array<{
+        check_type: string;
+        severity: 'pass' | 'warning' | 'fail';
+        title: string;
+        detail: string;
+        data?: Record<string, unknown>;
+      }>;
     },
   };
 }
@@ -283,6 +290,17 @@ async function seedReadyArticle(userId: string) {
     fix_available: false,
     fix_kind: null,
   }));
+  const gdriveRows = (smokeQa.qa_gdrive ?? []).map((r) => ({
+    article_id: articleId,
+    org_id: ANDAR_ORG,
+    check_type: r.check_type,
+    severity: r.severity,
+    title: r.title,
+    detail: r.detail,
+    data: r.data ?? null,
+    fix_available: false,
+    fix_kind: null,
+  }));
   // Plus an AI-critic finding (we can't run the real critic without spending
   // tokens in seed; a representative warning keeps the AI category visible
   // alongside the deterministic checks).
@@ -321,7 +339,7 @@ async function seedReadyArticle(userId: string) {
       fix_kind: null,
     },
   ];
-  const allChecks = [...ruleRows, ...readabilityRows, ...linkRows, ...aiRows, ...seoRows];
+  const allChecks = [...ruleRows, ...readabilityRows, ...linkRows, ...gdriveRows, ...aiRows, ...seoRows];
   const { error: qaErr } = await db.from('qa_checks').insert(allChecks);
   if (qaErr) {
     console.error('  qa_checks insert FAILED:', qaErr.message, qaErr.details ?? '', qaErr.hint ?? '');

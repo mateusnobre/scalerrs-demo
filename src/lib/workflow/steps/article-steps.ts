@@ -15,6 +15,7 @@ import {
   readabilityProducer,
   linkHealthProducer,
   criticProducer,
+  gdriveAccessProducer,
 } from '@/lib/qa/producers';
 import type { ParsedDoc } from '@/lib/db/types';
 
@@ -79,6 +80,16 @@ export async function linkHealthQaStep(article_id: string, org_id: string, doc: 
     persist: supabasePersist(),
   });
   return { broken: r.fails, warnings: r.warnings, ok: r.passes, total: r.total };
+}
+
+export async function gdriveAccessQaStep(article_id: string, org_id: string, doc: ParsedDoc) {
+  'use step';
+  const r = await runProducer(gdriveAccessProducer, doc, {
+    article_id,
+    org_id,
+    persist: supabasePersist(),
+  });
+  return { fails: r.fails, total: r.total };
 }
 
 export async function ruleQaStep(article_id: string, org_id: string, doc: ParsedDoc) {

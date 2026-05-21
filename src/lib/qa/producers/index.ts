@@ -2,6 +2,7 @@ import { rulesProducer } from './rules';
 import { readabilityProducer } from './readability';
 import { criticProducer } from './critic';
 import { linkHealthProducer } from './link-health';
+import { gdriveAccessProducer } from './gdrive-access';
 import type { QaProducer } from '@/lib/qa/producer';
 
 /**
@@ -12,7 +13,14 @@ export const QA_PRODUCERS: QaProducer[] = [
   rulesProducer,
   readabilityProducer,
   linkHealthProducer,
+  gdriveAccessProducer,
   criticProducer,
 ];
 
-export { rulesProducer, readabilityProducer, criticProducer, linkHealthProducer };
+export {
+  rulesProducer,
+  readabilityProducer,
+  criticProducer,
+  linkHealthProducer,
+  gdriveAccessProducer,
+};

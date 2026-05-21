@@ -20,6 +20,7 @@ import {
   readabilityQaStep,
   ruleQaStep,
   linkHealthQaStep,
+  gdriveAccessQaStep,
   aiCriticStep,
   autogenMetaDescStep,
   autogenMetaTitleStep,
@@ -89,6 +90,13 @@ export async function processArticle(article_id: string, org_id: string) {
       45,
       () => linkHealthQaStep(article_id, org_id, doc),
       (r) => ({ detail: `${r.broken} broken · ${r.warnings} unverifiable · ${r.ok} ok` }),
+    );
+
+    await session.run(
+      'gdrive-access',
+      46,
+      () => gdriveAccessQaStep(article_id, org_id, doc),
+      (r) => ({ detail: `${r.fails} private / unreachable · ${r.total} total` }),
     );
 
     await session.run(
