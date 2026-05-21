@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
+import { start } from 'workflow/api';
 import { createClient } from '@/lib/supabase/server';
-import { inngest } from '@/lib/inngest/client';
+import { processArticle } from '@/lib/workflow/process-article';
 import { extractDocId } from '@/lib/google/docs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,10 +33,7 @@ async function startProcessing(formData: FormData) {
     .single();
   if (error) throw error;
 
-  await inngest.send({
-    name: 'article/process.requested',
-    data: { article_id: article.id, org_id, gdoc_url: url },
-  });
+  await start(processArticle, [article.id, org_id, url]);
 
   redirect(`/articles/${article.id}`);
 }
@@ -53,8 +51,9 @@ export default function NewArticlePage() {
         <CardHeader>
           <CardTitle>Paste a publicly-shared Google Doc URL</CardTitle>
           <CardDescription>
-            We dispatch an Inngest run that fetches, parses, QA-checks, AI-reviews, rehosts images,
-            emits FAQ JSON-LD, renders WP-ready HTML, and fans out to the internal-linking engine.
+            We start a Vercel Workflow run that fetches, parses, QA-checks, AI-reviews,
+            rehosts images, emits FAQ + Article JSON-LD, renders WP-ready HTML, and fans out
+            to the internal-linking engine — all durable across crashes.
           </CardDescription>
         </CardHeader>
         <CardContent>

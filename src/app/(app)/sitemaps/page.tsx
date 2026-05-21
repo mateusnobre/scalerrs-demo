@@ -1,6 +1,7 @@
 import Link from 'next/link';
+import { start } from 'workflow/api';
 import { createClient } from '@/lib/supabase/server';
-import { inngest } from '@/lib/inngest/client';
+import { ingestSitemap } from '@/lib/workflow/ingest-sitemap';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,10 +30,7 @@ async function startIngest(formData: FormData) {
     .single();
   if (error) throw error;
 
-  await inngest.send({
-    name: 'sitemap/ingest.requested',
-    data: { sitemap_id: row.id, org_id, url },
-  });
+  await start(ingestSitemap, [row.id, org_id, url]);
 }
 
 export default async function SitemapsPage() {

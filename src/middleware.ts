@@ -6,5 +6,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  // .well-known/workflow/* is owned by Workflow DevKit's internal endpoints
+  // and must NOT be intercepted by the auth proxy.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|\\.well-known/workflow/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };

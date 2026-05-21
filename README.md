@@ -1,7 +1,7 @@
 # Scalerrs · Article QA + SEO Workflow Engine
 
 A durable, multi-tenant system that covers **all four** of Scalerrs's named
-SEO workflows on a single Supabase + Inngest + Vercel stack:
+SEO workflows on a single Supabase + Vercel Workflow DevKit + Vercel stack:
 
 1. **Content Creation** — Google Doc → rule + AI QA → auto-fix loop → WP HTML
 2. **Internal Linking** — sitemap.xml ingest → pg_trgm similarity → ranked anchor suggestions
@@ -10,7 +10,7 @@ SEO workflows on a single Supabase + Inngest + Vercel stack:
 
 Built around three primitives:
 
-- **Inngest** — durable, step-checkpointed execution with retries + concurrency caps.
+- **Vercel Workflow DevKit** — durable, step-checkpointed execution with retries + concurrency caps.
 - **Supabase + flat indexed RLS** — multi-tenancy via one indexed lookup per query (no recursive joins).
 - **A hard cost cap per run** — fail-fast before runaway LLM spend on bad inputs.
 
@@ -23,36 +23,31 @@ flowchart LR
   subgraph Client
     U[Next.js App Router<br/>RSC + Server Actions]
   end
-  subgraph Edge
-    A[/api/inngest serve]
-  end
-  subgraph Workers["Inngest Functions (durable + retryable)"]
-    P[process-article<br/>fetch → parse → QA → critic → meta → rehost → render → faq]
-    F1[autofix-alt-tags]
-    F2[autofix-meta]
-    F3[publish-wordpress]
-    S[ingest-sitemap<br/>batched 8/sec, cap 200 URLs]
-    L[suggest-internal-links<br/>pg_trgm rank]
+  subgraph WDK["Vercel Workflow DevKit (.well-known/workflow)"]
+    P["processArticle<br/>'use workflow' + 9 'use step' fns"]
+    F1[autofixAltTags]
+    F2[autofixMeta]
+    F3[publishWordpress]
+    S[ingestSitemap]
+    L["suggestInternalLinks<br/>pg_trgm rank"]
   end
   subgraph Data["Supabase Postgres + RLS by org_id"]
     DB[(articles · qa_checks · runs · article_versions<br/>sitemaps · sitemap_urls · internal_link_suggestions)]
   end
   subgraph External
     G[Google Docs export]
-    AI[AI Gateway → Claude Opus 4.7]
+    AI["AI Gateway → Claude Opus 4.7"]
     VB[Vercel Blob]
   end
-  U -- inngest.send --> A
-  A --> P
-  A --> F1
-  A --> F2
-  A --> F3
-  A --> S
-  A --> L
+  U -- "start(workflow, args)" --> P
+  U -- "start()" --> F1
+  U -- "start()" --> F2
+  U -- "start()" --> F3
+  U -- "start()" --> S
   P -- fetch --> G
   P -- generateObject / generateText --> AI
   P -- rehost --> VB
-  P -- step.sendEvent --> L
+  P -- "step: start(suggestInternalLinks)" --> L
   P -- writes + reads --> DB
   S -- upsert --> DB
   L -- rpc suggest_internal_links --> DB
@@ -63,14 +58,14 @@ flowchart LR
 
 | Scalerrs workflow | What's wired |
 |---|---|
-| Content Creation | `process-article` Inngest function: fetch, parse, rule QA, AI critic, image rehost, render. |
+| Content Creation | `process-article` Vercel Workflow DevKit function: fetch, parse, rule QA, AI critic, image rehost, render. |
 | Internal Linking | `ingest-sitemap` (XML parser + batched crawl) + `suggest-internal-links` (pg_trgm rank). |
 | On-Page SEO | Rule engine (10 checks) + FAQ JSON-LD emission + WP-ready HTML. |
 | Indexation | Per-URL noindex, canonical drift, fetch-fail captured at crawl, surfaced in Sitemap detail. |
 
 ### Mapping to the cybersecurity bullets
 
-- **AuthN/AuthZ** — Supabase Auth + flat RLS on every table. Service-role mutations only inside Inngest workers (never user-facing) and always pass `org_id` explicitly.
+- **AuthN/AuthZ** — Supabase Auth + flat RLS on every table. Service-role mutations only inside Vercel Workflow DevKit workers (never user-facing) and always pass `org_id` explicitly.
 - **API key handling** — Server-only env vars. Anon key is the only thing shipped to the browser.
 - **Input validation** — Zod schemas on AI critic responses; URL extraction is regex-bounded; sitemap parser is depth-capped (≤3) to prevent recursive bombs.
 - **OWASP** — No SSRF (URL allowlist via `extractDocId`), XSS surface kept tight via cheerio re-serialisation, no SQL injection (parameterised RPC + Supabase client).
@@ -83,10 +78,11 @@ flowchart LR
 
 ```
 src/lib/
-  inngest/functions/
-    process-article.ts      ← orchestrator: 10 steps + fan-out to suggest-links
-    autofix-alt.ts          ← per-image alt rewrite via Opus
-    autofix-meta.ts         ← regenerate meta title / description
+  workflow/
+    process-article.ts      ← orchestrator: 'use workflow' + 9 'use step' fns
+    steps/article-steps.ts  ← business step functions (Node.js access)
+    db-steps.ts             ← run + run_steps bookkeeping (drives the UI trace)
+    autofix.ts              ← autofixAltTags + autofixMeta workflows
     publish.ts              ← placeholder WP REST upload
     ingest-sitemap.ts       ← XML parse + batched crawl + upsert
     suggest-links.ts        ← pg_trgm RPC + persist top-N suggestions
@@ -140,7 +136,7 @@ AI-based (Claude Opus 4.7 via AI Gateway, zod-validated):
 - undefined claims ("premium", "high quality")
 
 Each issue declares a `fix_kind` → one-click **Auto-fix** in the UI → its
-own Inngest function → snapshot in `article_versions`.
+own Vercel Workflow DevKit function → snapshot in `article_versions`.
 
 ---
 
@@ -195,7 +191,7 @@ pnpm install
 cp .env.example .env.local
 supabase start && supabase db reset    # boots Postgres + applies all 5 migrations
 pnpm dev                                # :3000
-pnpm dev:inngest                        # :8288 (Inngest dev UI)
+npx workflow web                        # observability dashboard (any port)
 ```
 
 Create demo users via Supabase Studio (`http://127.0.0.1:54323`) and link them to orgs:
@@ -239,9 +235,9 @@ Writes `samples/dog-collar-output.{html,qa.json}`.
 ## Stack
 
 Next.js 16 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS + Realtime + pg_trgm) ·
-Inngest 4 · Vercel AI SDK 6 + AI Gateway → Claude Opus 4.7 · Vercel Blob ·
+Vercel Workflow DevKit 4 · Vercel AI SDK 6 + AI Gateway → Claude Opus 4.7 · Vercel Blob ·
 shadcn/ui + Tailwind 4 · cmdk · framer-motion · cheerio · fast-xml-parser · zod.
 
-Deploys on Vercel Fluid Compute. The Inngest worker route runs on Node
+Deploys on Vercel Fluid Compute. The Vercel Workflow DevKit worker route runs on Node
 (300s max), but durability comes from the worker checkpoints — no single
 function needs to finish in one execution.

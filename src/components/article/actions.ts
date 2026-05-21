@@ -1,7 +1,11 @@
 'use server';
 
+import { start } from 'workflow/api';
 import { createClient } from '@/lib/supabase/server';
-import { inngest } from '@/lib/inngest/client';
+import { processArticle } from '@/lib/workflow/process-article';
+import { autofixAltTags, autofixMeta } from '@/lib/workflow/autofix';
+import { publishWordpress } from '@/lib/workflow/publish';
+import { suggestInternalLinks } from '@/lib/workflow/suggest-links';
 
 async function orgFor(articleId: string) {
   const supabase = await createClient();
@@ -18,25 +22,15 @@ export async function triggerAutofix(articleId: string, fixKind: string) {
   const { org_id } = await orgFor(articleId);
   switch (fixKind) {
     case 'rewrite_alt_tags':
-      await inngest.send({
-        name: 'article/fix.alt-tags',
-        data: { article_id: articleId, org_id },
-      });
+      await start(autofixAltTags, [articleId, org_id]);
       return;
     case 'regenerate_meta_title':
-      await inngest.send({
-        name: 'article/fix.meta',
-        data: { article_id: articleId, org_id, field: 'meta_title' },
-      });
+      await start(autofixMeta, [articleId, org_id, 'meta_title' as const]);
       return;
     case 'regenerate_meta_description':
-      await inngest.send({
-        name: 'article/fix.meta',
-        data: { article_id: articleId, org_id, field: 'meta_description' },
-      });
+      await start(autofixMeta, [articleId, org_id, 'meta_description' as const]);
       return;
     case 'rehost_images':
-      // Image rehost runs as part of process-article; trigger a reprocess.
       await reprocess(articleId);
       return;
     default:
@@ -46,43 +40,27 @@ export async function triggerAutofix(articleId: string, fixKind: string) {
 
 export async function triggerPublish(articleId: string) {
   const { org_id } = await orgFor(articleId);
-  await inngest.send({
-    name: 'article/publish.wordpress',
-    data: { article_id: articleId, org_id },
-  });
+  await start(publishWordpress, [articleId, org_id]);
 }
 
 export async function reprocess(articleId: string) {
   const { org_id, gdoc_url } = await orgFor(articleId);
-  await inngest.send({
-    name: 'article/process.requested',
-    data: { article_id: articleId, org_id, gdoc_url },
-  });
+  await start(processArticle, [articleId, org_id, gdoc_url]);
 }
 
 export async function requestLinkSuggestions(articleId: string) {
   const { org_id } = await orgFor(articleId);
-  await inngest.send({
-    name: 'article/suggest.links',
-    data: { article_id: articleId, org_id },
-  });
+  await start(suggestInternalLinks, [articleId, org_id]);
 }
 
 /**
- * Replay a failed run. Picks up where the last successful checkpoint left
- * off conceptually — practically, we re-fire the same event. Inngest's
- * step memoization means already-completed steps in *this* function won't
- * re-execute (they're keyed by `step.run(id, ...)` and the run lineage),
- * but for a fresh-process this just kicks a new run.
- *
- * For the demo what matters: the user sees a failed run, hits Replay, and
- * the article reaches `ready_for_review` without any manual cleanup.
+ * Replay a failed run. Workflow DevKit's step memoization is per-run, so
+ * starting a new run *does* re-execute steps — but per-step retry semantics
+ * still apply, so transient failures (the simulated gateway timeout) recover
+ * automatically. The article reaches `ready_for_review` without manual cleanup.
  */
 export async function replayFailedRun(articleId: string) {
   const { supabase, org_id, gdoc_url } = await orgFor(articleId);
   await supabase.from('articles').update({ status: 'pending' }).eq('id', articleId);
-  await inngest.send({
-    name: 'article/process.requested',
-    data: { article_id: articleId, org_id, gdoc_url },
-  });
+  await start(processArticle, [articleId, org_id, gdoc_url]);
 }
