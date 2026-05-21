@@ -68,9 +68,9 @@ export async function processArticle(
   };
 
   try {
-    // 1. fetch
+    // 1. fetch (handles both gdoc URL and pre-uploaded .docx sentinel)
     const sFetch = await beginStep(run_id, org_id, 'fetch-doc', 1);
-    const { html, bytes } = await fetchDocStep(gdoc_url);
+    const { html, bytes } = await fetchDocStep(article_id, gdoc_url);
     await endStep(sFetch, `${(bytes / 1024).toFixed(1)} KB`);
 
     // 2. parse

@@ -14,8 +14,24 @@ import { detectAndEmitFaqSchema } from '@/lib/seo/faq-schema';
 import { buildArticleJsonLd, detectHowTo, injectJsonLd, type SchemaEmission } from '@/lib/seo/jsonld';
 import type { ParsedDoc } from '@/lib/db/types';
 
-export async function fetchDocStep(gdoc_url: string) {
+// Source-aware fetch. Branches on the URL:
+//   - "docx://uploaded" sentinel: pre-parsed by the upload server action,
+//     html lives in articles.raw_doc.raw_html. Skip the remote fetch.
+//   - else: treat as a Google Doc URL.
+export async function fetchDocStep(article_id: string, gdoc_url: string) {
   'use step';
+  if (gdoc_url.startsWith('docx://')) {
+    const db = createServiceClient();
+    const { data, error } = await db
+      .from('articles')
+      .select('raw_doc')
+      .eq('id', article_id)
+      .single();
+    if (error) throw error;
+    const html = (data?.raw_doc as { raw_html?: string } | null)?.raw_html ?? '';
+    if (!html) throw new Error('Uploaded .docx article has no pre-parsed html');
+    return { html, bytes: html.length };
+  }
   const docId = extractDocId(gdoc_url);
   const { html, bytes } = await fetchDocHtml(docId, { maxAttempts: 3 });
   return { html, bytes };
