@@ -32,6 +32,7 @@ import {
   parseAndPersistStep,
   readabilityQaStep,
   ruleQaStep,
+  linkHealthQaStep,
   aiCriticStep,
   autogenMetaDescStep,
   autogenMetaTitleStep,
@@ -90,6 +91,14 @@ export async function processArticle(
     const sRead = await beginStep(run_id, org_id, 'readability-qa', 4);
     const read = await readabilityQaStep(article_id, org_id, doc);
     await endStep(sRead, `${read.fails} failing · ${read.total} total`);
+
+    // 4.5 link-health QA (HEAD/GET every outbound link, flag 404 etc.)
+    const sLink = await beginStep(run_id, org_id, 'link-health', 45);
+    const link = await linkHealthQaStep(article_id, org_id, doc);
+    await endStep(
+      sLink,
+      `${link.broken + link.networkError} broken · ${link.rateLimited + link.cfChallenge} unverifiable · ${link.ok} ok`,
+    );
 
     // 5. AI critic
     const sAI = await beginStep(run_id, org_id, 'ai-critic', 5);

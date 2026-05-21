@@ -60,6 +60,13 @@ function loadSmoke() {
         detail: string;
         data?: Record<string, unknown>;
       }>;
+      qa_links?: Array<{
+        check_type: string;
+        severity: 'pass' | 'warning' | 'fail';
+        title: string;
+        detail: string;
+        data?: Record<string, unknown>;
+      }>;
     },
   };
 }
@@ -263,6 +270,15 @@ async function seedReadyArticle(userId: string) {
     detail: r.detail,
     data: r.data ?? null,
   }));
+  const linkRows = (smokeQa.qa_links ?? []).map((r) => ({
+    article_id: articleId,
+    org_id: ANDAR_ORG,
+    check_type: r.check_type,
+    severity: r.severity,
+    title: r.title,
+    detail: r.detail,
+    data: r.data ?? null,
+  }));
   // Plus an AI-critic finding (we can't run the real critic without spending
   // tokens in seed; a representative warning keeps the AI category visible
   // alongside the deterministic checks).
@@ -297,7 +313,7 @@ async function seedReadyArticle(userId: string) {
       detail: 'schema.org/Article block emitted at the top of the body.',
     },
   ];
-  await db.from('qa_checks').insert([...ruleRows, ...readabilityRows, ...aiRows, ...seoRows]);
+  await db.from('qa_checks').insert([...ruleRows, ...readabilityRows, ...linkRows, ...aiRows, ...seoRows]);
 
   // Pre-populate internal-link suggestions from the seeded sitemap.
   await db.from('internal_link_suggestions').insert([

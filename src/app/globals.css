@@ -114,6 +114,43 @@ html, body {
   position: absolute;
   background: rgba(74, 222, 128, 0.9);
 }
+.qa-annotated a.qa-mark-fail-link {
+  color: #fca5a5 !important;
+  text-decoration-color: rgba(248, 113, 113, 0.9) !important;
+  text-decoration-thickness: 2px !important;
+  background: rgba(248, 113, 113, 0.10);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+.qa-annotated a.qa-mark-fail-link::after {
+  content: ' ✕ 404';
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(248, 113, 113, 0.95);
+  letter-spacing: 0.05em;
+}
+.qa-annotated a.qa-mark-warn-link {
+  color: #fde68a !important;
+  text-decoration-color: rgba(251, 191, 36, 0.9) !important;
+  background: rgba(251, 191, 36, 0.10);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+.qa-annotated a.qa-mark-warn-link::after {
+  content: ' ⚠';
+  color: rgba(251, 191, 36, 0.95);
+  font-size: 10px;
+}
+.qa-annotated.hide-fail a.qa-mark-fail-link {
+  background: transparent;
+  color: inherit !important;
+}
+.qa-annotated.hide-fail a.qa-mark-fail-link::after { content: ''; }
+.qa-annotated.hide-warn a.qa-mark-warn-link {
+  background: transparent;
+  color: inherit !important;
+}
+.qa-annotated.hide-warn a.qa-mark-warn-link::after { content: ''; }
 .qa-annotated.hide-fail .qa-mark-fail,
 .qa-annotated.hide-fail img.qa-mark-fail-img {
   background: transparent;

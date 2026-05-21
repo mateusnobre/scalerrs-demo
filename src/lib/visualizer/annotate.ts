@@ -19,6 +19,14 @@ interface InitialVersion {
   meta_description: string | null;
 }
 
+interface LinkProbeData {
+  url: string;
+  http_status: number;
+  status: string;
+  ms: number;
+  error?: string;
+}
+
 export interface AnnotateOptions {
   html: string;
   checks: QaCheck[];
@@ -109,6 +117,35 @@ export function annotateArticleHtml(opts: AnnotateOptions): AnnotateResult {
     }
   });
 
+  // 3b) Broken / unverifiable links — wrap the <a> in a red (fail) or amber
+  //     (warning) outline + carry the HTTP status into the title attr so
+  //     hovering reveals the exact code.
+  const linkVerdicts = new Map<string, { tone: 'fail' | 'warn'; tip: string }>();
+  for (const c of opts.checks) {
+    if (!c.check_type.startsWith('links:')) continue;
+    const probes = ((c.data as { probes?: LinkProbeData[] } | null)?.probes ?? []) as LinkProbeData[];
+    const tone: 'fail' | 'warn' = c.severity === 'fail' ? 'fail' : 'warn';
+    for (const p of probes) {
+      const tip = describeLink(p);
+      linkVerdicts.set(p.url, { tone, tip });
+    }
+  }
+  if (linkVerdicts.size > 0) {
+    $('a[href]').each((_, el) => {
+      const $a = $(el);
+      const href = ($a.attr('href') ?? '').trim();
+      const v = linkVerdicts.get(href);
+      if (!v) return;
+      const existing = ($a.attr('class') ?? '').trim();
+      const klass = v.tone === 'fail' ? 'qa-mark-fail-link' : 'qa-mark-warn-link';
+      $a.attr('class', `${existing} ${klass}`.trim());
+      $a.attr('title', v.tip);
+      // Counts: don't double-count if already counted by another rule.
+      if (v.tone === 'fail') counts.fail++;
+      else counts.warn++;
+    });
+  }
+
   // 4) Meta diff — these aren't in the body html; we surface them at the
   //    component level via the result flags.
   const metaTitleChanged = !!(
@@ -130,6 +167,21 @@ export function annotateArticleHtml(opts: AnnotateOptions): AnnotateResult {
     initialMetaTitle: opts.initialVersion?.meta_title ?? null,
     initialMetaDescription: opts.initialVersion?.meta_description ?? null,
   };
+}
+
+function describeLink(p: LinkProbeData): string {
+  switch (p.status) {
+    case 'broken':
+      return `Broken link · HTTP ${p.http_status} · ${p.ms}ms`;
+    case 'network_error':
+      return `Network error: ${p.error ?? 'no response'} · ${p.ms}ms`;
+    case 'rate_limited':
+      return `Rate-limited (HTTP 429) — could not verify · ${p.ms}ms`;
+    case 'cf_challenge':
+      return `Cloudflare bot wall — page exists but crawler couldn't access`;
+    default:
+      return `HTTP ${p.http_status} · ${p.ms}ms`;
+  }
 }
 
 function walkTextNodes(

@@ -12,6 +12,7 @@ import { renderArticleHtml } from '@/lib/html/render';
 import { rehostImage } from '@/lib/rehost/blob';
 import { detectAndEmitFaqSchema } from '@/lib/seo/faq-schema';
 import { buildArticleJsonLd, detectHowTo, injectJsonLd, type SchemaEmission } from '@/lib/seo/jsonld';
+import { checkLinkHealth, summarise } from '@/lib/qa/link-health';
 import type { ParsedDoc } from '@/lib/db/types';
 
 // Source-aware fetch. Branches on the URL:
@@ -73,6 +74,88 @@ export async function readabilityQaStep(article_id: string, org_id: string, doc:
   }
   const fails = findings.filter((f) => f.severity === 'fail').length;
   return { fails, total: findings.length };
+}
+
+/**
+ * Link-health QA. HEADs every outbound link (with a GET fallback for
+ * hostile servers) and writes one qa_check row per failure mode:
+ *   - links:broken         — 4xx/5xx that isn't 429
+ *   - links:rate_limited   — 429 (warning, not fail — domain might be live)
+ *   - links:cf_challenge   — Cloudflare bot wall (warning — can't verify)
+ *   - links:network_error  — DNS, timeout, ECONNREFUSED
+ * The data column stores every probe so the Visualizer can mark `<a>` tags.
+ */
+export async function linkHealthQaStep(article_id: string, org_id: string, doc: ParsedDoc) {
+  'use step';
+  const db = createServiceClient();
+  const probes = await checkLinkHealth(doc.links, { timeoutMs: 7000, concurrency: 6 });
+  const s = summarise(probes);
+  await db.from('qa_checks').delete().eq('article_id', article_id).like('check_type', 'links:%');
+  const rows: Record<string, unknown>[] = [];
+  if (s.broken.length) {
+    rows.push({
+      article_id,
+      org_id,
+      check_type: 'links:broken',
+      severity: 'fail',
+      title: `${s.broken.length} broken link(s) (4xx / 5xx)`,
+      detail: s.broken.map((p) => `${p.http_status} ${p.url}`).join(' · '),
+      data: { probes: s.broken },
+    });
+  }
+  if (s.networkError.length) {
+    rows.push({
+      article_id,
+      org_id,
+      check_type: 'links:network_error',
+      severity: 'fail',
+      title: `${s.networkError.length} link(s) failed to connect`,
+      detail: s.networkError.map((p) => `${p.url} — ${p.error ?? 'timeout'}`).join(' · '),
+      data: { probes: s.networkError },
+    });
+  }
+  if (s.rateLimited.length) {
+    rows.push({
+      article_id,
+      org_id,
+      check_type: 'links:rate_limited',
+      severity: 'warning',
+      title: `${s.rateLimited.length} link(s) rate-limited (429)`,
+      detail: `Could not verify these targets; domain throttled our crawler. Re-run later.`,
+      data: { probes: s.rateLimited },
+    });
+  }
+  if (s.cfChallenge.length) {
+    rows.push({
+      article_id,
+      org_id,
+      check_type: 'links:cf_challenge',
+      severity: 'warning',
+      title: `${s.cfChallenge.length} link(s) behind Cloudflare bot wall`,
+      detail: 'Page returned the CF "Verifying your connection" interstitial. Real users will reach the page; our crawler cannot.',
+      data: { probes: s.cfChallenge },
+    });
+  }
+  if (s.ok.length > 0 && rows.length === 0) {
+    rows.push({
+      article_id,
+      org_id,
+      check_type: 'links:ok',
+      severity: 'pass',
+      title: `All ${s.ok.length} links resolve`,
+      detail: 'Every outbound link returned 2xx/3xx within the timeout.',
+      data: { count: s.ok.length },
+    });
+  }
+  if (rows.length > 0) await db.from('qa_checks').insert(rows);
+  return {
+    broken: s.broken.length,
+    rateLimited: s.rateLimited.length,
+    cfChallenge: s.cfChallenge.length,
+    networkError: s.networkError.length,
+    ok: s.ok.length,
+    total: probes.length,
+  };
 }
 
 export async function ruleQaStep(article_id: string, org_id: string, doc: ParsedDoc) {

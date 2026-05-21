@@ -12,6 +12,7 @@ import { extractDocId, fetchDocHtml } from '../src/lib/google/docs';
 import { parseGoogleDocHtml } from '../src/lib/google/parser';
 import { runRuleChecks } from '../src/lib/qa/rules';
 import { runReadability } from '../src/lib/qa/readability';
+import { checkLinkHealth, summarise as summariseLinks } from '../src/lib/qa/link-health';
 import { renderArticleHtml } from '../src/lib/html/render';
 import { buildArticleJsonLd, detectHowTo, injectJsonLd, type SchemaEmission } from '../src/lib/seo/jsonld';
 import { detectAndEmitFaqSchema } from '../src/lib/seo/faq-schema';
@@ -34,11 +35,48 @@ async function main() {
 
   const rules = runRuleChecks(doc);
   const readability = await runReadability(doc);
-  const allQa = [...rules, ...readability];
+  console.log('  checking link health…');
+  const linkProbes = await checkLinkHealth(doc.links);
+  const linkSummary = summariseLinks(linkProbes);
+  const linkRows: { check_type: string; severity: 'fail' | 'warning' | 'pass'; title: string; detail: string; data: Record<string, unknown> }[] = [];
+  if (linkSummary.broken.length)
+    linkRows.push({
+      check_type: 'links:broken',
+      severity: 'fail',
+      title: `${linkSummary.broken.length} broken link(s) (4xx / 5xx)`,
+      detail: linkSummary.broken.map((p) => `${p.http_status} ${p.url}`).join(' · '),
+      data: { probes: linkSummary.broken },
+    });
+  if (linkSummary.networkError.length)
+    linkRows.push({
+      check_type: 'links:network_error',
+      severity: 'fail',
+      title: `${linkSummary.networkError.length} link(s) failed to connect`,
+      detail: linkSummary.networkError.map((p) => `${p.url}`).join(' · '),
+      data: { probes: linkSummary.networkError },
+    });
+  if (linkSummary.rateLimited.length)
+    linkRows.push({
+      check_type: 'links:rate_limited',
+      severity: 'warning',
+      title: `${linkSummary.rateLimited.length} link(s) rate-limited (429)`,
+      detail: 'Could not verify.',
+      data: { probes: linkSummary.rateLimited },
+    });
+  if (linkSummary.cfChallenge.length)
+    linkRows.push({
+      check_type: 'links:cf_challenge',
+      severity: 'warning',
+      title: `${linkSummary.cfChallenge.length} link(s) behind Cloudflare bot wall`,
+      detail: 'Page exists but crawler blocked.',
+      data: { probes: linkSummary.cfChallenge },
+    });
+  const allQa = [...rules, ...readability, ...linkRows];
   const fail = allQa.filter((r) => r.severity === 'fail').length;
   const warn = allQa.filter((r) => r.severity === 'warning').length;
   const pass = allQa.filter((r) => r.severity === 'pass').length;
-  console.log(`  QA: ${fail} fail, ${warn} warn, ${pass} pass (rules + readability)`);
+  console.log(`  QA: ${fail} fail, ${warn} warn, ${pass} pass (rules + readability + links)`);
+  console.log(`  Links: ${linkSummary.broken.length} broken, ${linkSummary.rateLimited.length} 429, ${linkSummary.cfChallenge.length} CF, ${linkSummary.ok.length} ok`);
 
   let html = renderArticleHtml(doc);
   const faq = detectAndEmitFaqSchema(html);
@@ -95,6 +133,8 @@ ${html}
         product_links: doc.links.filter((l) => l.is_product).length,
         qa_rules: rules,
         qa_readability: readability,
+        qa_links: linkRows,
+        link_probes: linkProbes,
       },
       null,
       2,
