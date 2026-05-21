@@ -1,0 +1,168 @@
+<testsuites id="" name="" tests="20" failures="0" skipped="13" errors="0" time="27.422324">
+<testsuite name="auth.setup.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="setup" tests="1" failures="0" skipped="0" time="0.502" errors="0">
+<testcase name="authenticate" classname="auth.setup.mjs" time="0.502">
+<system-out>
+<![CDATA[auth: storageState 0.4m old, under 30m TTL: skipping login
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="auth.setup.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="0" time="0.462" errors="0">
+<testcase name="authenticate" classname="auth.setup.mjs" time="0.462">
+<system-out>
+<![CDATA[auth: storageState 0.4m old, under 30m TTL: skipping login
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="invariants/cardinality-equality.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="3.992" errors="0">
+<testcase name="cardinality-equality › cost-per-X uses same cohort as count-X" classname="invariants/cardinality-equality.spec.mjs">
+<properties>
+<property name="skip" value="no cohortChecks configured">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/complement-sum.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="2.722" errors="0">
+<testcase name="complement-sum › partition-style filter values sum to no-filter total" classname="invariants/complement-sum.spec.mjs">
+<properties>
+<property name="skip" value="no complementChecks configured">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/cross-check.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="3.083" errors="0">
+<testcase name="cross-check › same metric agrees across cards" classname="invariants/cross-check.spec.mjs">
+<properties>
+<property name="skip" value="no crossCardChecks configured">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/date-inclusivity.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="2.615" errors="0">
+<testcase name="date-inclusivity › extending date range never drops counts" classname="invariants/date-inclusivity.spec.mjs">
+<properties>
+<property name="skip" value="no date-range filter">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/distribution-drift.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="distribution-drift › numeric source fields within historical p50/p95/null-rate envelope" classname="invariants/distribution-drift.spec.mjs">
+<properties>
+<property name="skip" value="no distributionProbes configured">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/empty-state.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="2.372" errors="0">
+<testcase name="empty-state › zero-source filter combos render as dash, not zero/NaN" classname="invariants/empty-state.spec.mjs">
+<properties>
+<property name="skip" value="no emptyStateProbes configured">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/filter-commutativity.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="2.405" errors="0">
+<testcase name="filter-commutativity › filter application order is irrelevant" classname="invariants/filter-commutativity.spec.mjs">
+<properties>
+<property name="skip" value="need at least 2 filters with values">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/filter-propagation.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="0" time="2.673" errors="0">
+<testcase name="filter-propagation › filters propagate to every applicable KPI" classname="invariants/filter-propagation.spec.mjs" time="2.673">
+</testcase>
+</testsuite>
+<testsuite name="invariants/freshness.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="2.635" errors="0">
+<testcase name="freshness › source-of-truth and dashboard are within freshness lag" classname="invariants/freshness.spec.mjs">
+<properties>
+<property name="skip" value="no freshness config">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/metamorphic-fc.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="2.643" errors="0">
+<testcase name="metamorphic-fc › property: narrowing-monotonicity (shrinking on failure)" classname="invariants/metamorphic-fc.spec.mjs">
+<properties>
+<property name="skip" value="fast-check not installed (pnpm add -D fast-check)">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/narrowing-monotonicity.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="0" time="2.86" errors="0">
+<testcase name="narrowing-monotonicity › narrowing a filter does not increase additive KPIs" classname="invariants/narrowing-monotonicity.spec.mjs" time="2.86">
+</testcase>
+</testsuite>
+<testsuite name="invariants/reconciliation.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="0" time="3.173" errors="0">
+<testcase name="reconciliation › every pinned KPI matches source-of-truth within tolerance" classname="invariants/reconciliation.spec.mjs" time="3.173">
+</testcase>
+</testsuite>
+<testsuite name="invariants/referential-integrity.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="2.887" errors="0">
+<testcase name="referential-integrity › filter dropdown values exist in source dimension" classname="invariants/referential-integrity.spec.mjs">
+<properties>
+<property name="skip" value="no referentialChecks configured">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/rollup-reconciliation.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="0" time="2.478" errors="0">
+<testcase name="rollup-reconciliation › KPI = sum of detail-table column" classname="invariants/rollup-reconciliation.spec.mjs" time="2.478">
+</testcase>
+</testsuite>
+<testsuite name="invariants/schema-stability.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="schema-stability › source schema unchanged since pin" classname="invariants/schema-stability.spec.mjs">
+<properties>
+<property name="skip" value="no schemaProbes configured">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/time-window-additivity.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="2.404" errors="0">
+<testcase name="time-window-additivity › parts sum to whole for additive KPIs over a date range" classname="invariants/time-window-additivity.spec.mjs">
+<properties>
+<property name="skip" value="no timeWindowChecks configured">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="invariants/toggle-parity.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="0" time="2.388" errors="0">
+<testcase name="toggle-parity › toggle on→off→on is stable" classname="invariants/toggle-parity.spec.mjs" time="2.388">
+</testcase>
+</testsuite>
+<testsuite name="invariants/volume-anomaly.spec.mjs" timestamp="2026-05-21T19:15:18.799Z" hostname="invariants" tests="1" failures="0" skipped="1" time="0.001" errors="0">
+<testcase name="volume-anomaly › source row counts within historical envelope" classname="invariants/volume-anomaly.spec.mjs">
+<properties>
+<property name="skip" value="no volumeProbes configured">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>
