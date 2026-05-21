@@ -54,7 +54,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="text-[var(--fg-2)]">{user.email}</span>
           </div>
           <div className="text-[var(--fg-3)] mono">
-            Inngest dev: <a href="http://localhost:8288" target="_blank" rel="noreferrer" className="hover:text-[var(--fg-1)]">:8288</a>
+            Workflow DevKit · <code className="text-[var(--fg-2)]">npx workflow web</code>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto px-6 py-8">{children}</main>

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:inngest": "npx inngest-cli@latest dev -u http://localhost:3000/api/inngest",
+    "workflow:web": "npx workflow web",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

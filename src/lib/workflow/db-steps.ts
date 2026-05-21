@@ -1,6 +1,6 @@
 // Shared step functions for run/step tracking. Every business step writes
 // its own row into `run_steps` so the UI's live trace (Supabase Realtime
-// on run_steps) keeps working the same way it did under Inngest.
+// on run_steps) keeps working without a separate orchestrator dashboard.
 
 import { createServiceClient } from '@/lib/supabase/service';
 import type { RunStatus } from '@/lib/db/types';

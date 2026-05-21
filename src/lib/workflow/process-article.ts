@@ -5,8 +5,8 @@
 // orchestrator — it has no Node.js access, only step calls + workflow
 // primitives like `sleep` and `createHook`.
 //
-// What changed vs the Inngest port:
-//   - No `inngest.createFunction({...}, handler)` boilerplate.
+// Why Workflow DevKit (not an external orchestrator):
+//   - No `someOrchestrator.createFunction({...}, handler)` boilerplate.
 //   - No `step.run("id", cb)` wrappers — each `'use step'` function is
 //     auto-memoized by Workflow.
 //   - Fan-out to the internal-linking engine uses `start()` wrapped in a

@@ -16,20 +16,20 @@ export default function ArchitecturePage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Box
-          title="Inngest · durable execution"
+          title="Vercel Workflow DevKit · durable execution"
           tone="accent"
-          body="Every step writes a checkpoint to Postgres. Kill the tab; the run resumes server-side. Per-step retries are exponentially backed off with jitter. Concurrency is capped per function to keep the dev/prod blast radius tight."
+          body={`Every '\`use step\`' function is a memoized, retryable unit. The orchestrator is a sandboxed '\`use workflow\`' function that calls steps and suspends between them. Kill the tab; the run resumes server-side. No external service — all .well-known/workflow/* endpoints auto-served by withWorkflow(nextConfig).`}
           bullets={[
-            'process-article: 10 sequential steps + 1 fan-out',
-            'autofix-alt-tags, autofix-meta, publish-wordpress',
-            'ingest-sitemap (batched, 8 URLs/sec)',
-            'suggest-internal-links (pg_trgm rank)',
+            'processArticle: 11 steps + fan-out to suggestInternalLinks',
+            'autofixAltTags, autofixMeta, autofixPlaceholderAlts',
+            'publishWordpress, ingestSitemap',
+            'link-health probes every outbound link mid-flight',
           ]}
         />
         <Box
           title="Supabase · flat indexed RLS"
           tone="info"
-          body="Every tenant table carries org_id denormalised. Policies are a single index hit against org_members, never recursive joins. Service-role mutations live only inside Inngest workers and always pass org_id explicitly."
+          body="Every tenant table carries org_id denormalised. Policies are a single index hit against org_members, never recursive joins. Service-role mutations live only inside Workflow steps and always pass org_id explicitly."
           bullets={[
             'GIN trigram index on sitemap_urls.title + h1',
             'Realtime subscriptions on runs / qa_checks / sitemap_urls',
@@ -101,10 +101,10 @@ function Diagram() {
           <Node x={120} y={30} w={180} label="Next.js App (RSC)" sub="dashboard · sitemaps · architecture" />
 
           {/* Server actions */}
-          <Node x={340} y={30} w={200} label="Server Actions" sub="inngest.send(event)" />
+          <Node x={340} y={30} w={200} label="Server Actions" sub="start(workflowFn, [args])" />
 
-          {/* API route */}
-          <Node x={580} y={30} w={200} label="/api/inngest" sub="serve(client, [functions])" tone="accent" />
+          {/* Workflow endpoints */}
+          <Node x={580} y={30} w={200} label=".well-known/workflow/*" sub="withWorkflow(nextConfig)" tone="accent" />
 
           {/* Workers */}
           <Node x={120} y={170} w={180} label="process-article" sub="fetch · parse · QA · critic · rehost · render · faq · suggest" tone="accent" big />

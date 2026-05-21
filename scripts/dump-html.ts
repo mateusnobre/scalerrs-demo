@@ -1,6 +1,6 @@
 // Standalone CLI: fetch a Google Doc, run rule-QA, render WordPress-ready
 // HTML, and write samples/{slug}.html + samples/{slug}.qa.json.
-// No Supabase, no Inngest — just the pure parsing + rendering pipeline so
+// No Supabase, no Workflow runtime — just the pure parsing + rendering pipeline so
 // you can attach the output HTML to the assessment submission directly.
 //
 // Usage:

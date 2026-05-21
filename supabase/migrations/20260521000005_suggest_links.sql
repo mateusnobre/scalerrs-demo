@@ -27,6 +27,6 @@ as $$
 $$;
 
 -- Restrict execution to the authenticated role; service role bypasses RLS
--- and is the only caller from Inngest workers.
+-- and is the only caller from Workflow steps.
 revoke all on function public.suggest_internal_links(uuid, text, integer, real) from public;
 grant execute on function public.suggest_internal_links(uuid, text, integer, real) to authenticated, service_role;

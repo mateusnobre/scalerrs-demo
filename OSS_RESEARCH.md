@@ -4,27 +4,31 @@ This is the audit trail behind the stack choices in this repo. Eight categories,
 top picks per category, integration cost, and a final ordered hit list.
 
 The constraint baked into every pick: **Scalerrs's stack is Supabase + Vercel +
-TypeScript + Inngest**. Anything that doesn't live happily inside that loses
-points, regardless of merit. The goal is *less new infra, more leverage*.
+TypeScript**. Anything that doesn't live happily inside that loses points,
+regardless of merit. The goal is *less new infra, more leverage*.
 
 ---
 
 ## 1. Durable workflow engines
 
 Picks evaluated:
-- [inngest/inngest](https://github.com/inngest/inngest) — Apache-2.0 SDK, proprietary platform. Strong fan-out, native Vercel support.
-- [triggerdotdev/trigger.dev](https://github.com/triggerdotdev/trigger.dev) — Apache-2.0. Long-lived workers, exceptional DX, but its worker model overlaps badly with the Inngest-on-Vercel pattern.
-- [hatchet-dev/hatchet](https://github.com/hatchet-dev/hatchet) — MIT. DAG semantics, per-step concurrency caps, priority lanes, streaming step outputs — the closest fit for "agent reasoning with retries + budget caps".
+- [vercel/workflow](https://github.com/vercel/workflow) — Apache-2.0. Native Vercel runtime, `'use workflow'` + `'use step'` directives, no external service, no signing keys, zero-config deploy.
+- [inngest/inngest](https://github.com/inngest/inngest) — Apache-2.0 SDK, proprietary platform. Strong fan-out + dev dashboard, but introduces an external service + signing-key wiring.
+- [triggerdotdev/trigger.dev](https://github.com/triggerdotdev/trigger.dev) — Apache-2.0. Long-lived workers, exceptional DX, but the worker model overlaps badly with Vercel Fluid Compute.
+- [hatchet-dev/hatchet](https://github.com/hatchet-dev/hatchet) — MIT. DAG semantics, per-step concurrency caps, priority lanes — the closest fit for "agent reasoning with retries + budget caps" if we ever outgrow WDK.
 - Temporal TS SDK — overkill for this scope; setup cost is days, not hours.
 - Restate — too new in TS; production stories thin.
 
-**Chosen: Inngest.** It's already wired, the demo proves durable execution mid-run,
-and `step.sendEvent` covers the fan-out into the internal-linking engine.
+**Chosen: Vercel Workflow DevKit.** Pure Vercel stack — no third-party
+orchestrator, no signing keys to ship, no separate dashboard to context-switch
+to. Directives map cleanly to RSC mental model (`'use workflow'` ~ `'use
+server'`). Step memoization handles the Replay flow exactly the same as
+Inngest would.
 
 **Honest follow-up:** Hatchet is the dark horse for the Indexation crawler.
 DAG semantics mean we could express "fan out 200 URLs × Lighthouse + indexation
 checks, gather, score" as a typed graph rather than a `for` loop inside a single
-Inngest step. Earmarked as a v2 swap-in.
+Workflow step. Earmarked as a v2 swap-in.
 
 ---
 
@@ -37,10 +41,10 @@ Picks evaluated:
 - `fast-xml-parser` — what's wired today. Adequate for the demo, not for production.
 
 **Chosen for the demo: fast-xml-parser + bare `fetch`.** Predictable, no headless
-Chrome dep, fits inside Inngest steps cleanly.
+Chrome dep, fits inside Workflow steps cleanly.
 
 **Production upgrade path written into the README:** Crawlee + Lighthouse CI
-running per-URL inside Inngest, captured into `sitemap_urls` alongside
+running per-URL inside a Workflow step, captured into `sitemap_urls` alongside
 indexation signals. Single crawl pass gives us indexation health *and* Core
 Web Vitals — the "we do what Screaming Frog does, but inside your workflow"
 talking point that nobody who has seen an AirOps clone before has heard.
@@ -65,7 +69,7 @@ p_min_score)` with revoke-all + grant-execute to keep the privilege boundary
 clean.
 
 **Production upgrade path:** swap the RPC body to use pgvector + voyage-3-large
-embeddings; the surrounding Inngest function (`suggest-links.ts`) doesn't
+embeddings; the surrounding Workflow (`suggest-links.ts`) doesn't
 change. **One-file swap.** That's the headline.
 
 ---
@@ -120,7 +124,7 @@ Picks evaluated:
 - [dotansimha/graphql-code-generator](https://github.com/dotansimha/graphql-code-generator) — MIT. Generates the TS client.
 - Faust.js — Next.js *frontend* framework. Overkill if we only need the publish step.
 
-**Chosen for the demo: a placeholder Inngest function** that simulates the
+**Chosen for the demo: a placeholder Workflow** that simulates the
 WP upload with `step.sleep`. Production swap-in: WPGraphQL + codegen-typed
 `createPost` mutation, media upload via `uploadMedia`, idempotency-keyed on
 `article_versions.id`. Shopify equivalent slots in behind the same
@@ -158,7 +162,7 @@ Picks evaluated:
 - [sbdchd/squawk](https://github.com/sbdchd/squawk) — lints migrations for unsafe schema changes pre-deploy.
 
 **Chosen for v1: supabase-js + manual discipline.** Service role only inside
-Inngest workers; always pass `org_id` explicitly on every mutation. Documented
+Workflow steps; always pass `org_id` explicitly on every mutation. Documented
 in `src/lib/supabase/service.ts`.
 
 **Production upgrade path:** introduce Drizzle for new RLS-sensitive tables

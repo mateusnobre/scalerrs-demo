@@ -57,7 +57,7 @@ export interface UrlSignals {
 }
 
 // Fetch a single URL and extract on-page signals. Bounded by AbortController
-// so a slow upstream doesn't pin an Inngest step indefinitely.
+// so a slow upstream doesn't pin a Workflow step indefinitely.
 export async function extractUrlSignals(url: string, timeoutMs = 8000): Promise<UrlSignals> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

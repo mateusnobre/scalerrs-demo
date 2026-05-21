@@ -87,7 +87,8 @@ export interface Run {
   id: string;
   article_id: string;
   org_id: string;
-  inngest_run_id: string | null;
+  // Workflow DevKit's external run id, captured at run-start for cross-referencing.
+  external_run_id: string | null;
   status: RunStatus;
   started_at: string | null;
   completed_at: string | null;
