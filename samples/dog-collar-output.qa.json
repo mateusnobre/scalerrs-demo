@@ -6,7 +6,7 @@
   "image_count": 0,
   "link_count": 14,
   "product_links": 11,
-  "qa": [
+  "qa_rules": [
     {
       "check_type": "image_count",
       "severity": "fail",
@@ -130,6 +130,71 @@
       "detail": "Adequate length for SEO.",
       "data": {
         "word_count": 1354
+      }
+    }
+  ],
+  "qa_readability": [
+    {
+      "check_type": "readability:reading_level",
+      "severity": "fail",
+      "title": "Reading level: 16",
+      "detail": "Sentences requiring more than 16yr education. 16 occurrence(s) flagged.",
+      "data": {
+        "count": 16,
+        "examples": [
+          "Unexpected hard to read sentence, according to 6 out of 7 algorithms",
+          "Unexpected hard to read sentence, according to 5 out of 7 algorithms",
+          "Unexpected hard to read sentence, according to 6 out of 7 algorithms",
+          "Unexpected hard to read sentence, according to 4 out of 7 algorithms",
+          "Unexpected hard to read sentence, according to 6 out of 7 algorithms"
+        ]
+      }
+    },
+    {
+      "check_type": "readability:passive_voice",
+      "severity": "pass",
+      "title": "Passive voice: 1",
+      "detail": "Passive constructions (target: under 10% of sentences). 1 occurrence(s) flagged.",
+      "data": {
+        "count": 1,
+        "examples": [
+          "Unexpected use of the passive voice"
+        ]
+      }
+    },
+    {
+      "check_type": "readability:inclusive_language",
+      "severity": "fail",
+      "title": "Inclusive language: 8",
+      "detail": "Gendered, ableist, or otherwise non-inclusive phrasing. 8 occurrence(s) flagged.",
+      "data": {
+        "count": 8,
+        "examples": [
+          "Unexpected potentially insensitive use of `easy`, try not to use it",
+          "Unexpected potentially insensitive use of `easy`, try not to use it",
+          "Unexpected potentially insensitive use of `easily`, try not to use it",
+          "Unexpected potentially insensitive use of `just`, try not to use it",
+          "Unexpected potentially insensitive use of `Just`, try not to use it"
+        ]
+      }
+    },
+    {
+      "check_type": "readability:sentence_spacing",
+      "severity": "pass",
+      "title": "Sentence spacing: 0",
+      "detail": "Inconsistent spacing between sentences. No issues found.",
+      "data": {
+        "count": 0,
+        "examples": []
+      }
+    },
+    {
+      "check_type": "readability:flesch_score",
+      "severity": "fail",
+      "title": "Flesch reading ease 33",
+      "detail": "Reading ease is too low (<50). Cut sentence length and syllable density.",
+      "data": {
+        "score": 32.7
       }
     }
   ]

@@ -7,6 +7,8 @@ import { aiCritic, regenerateMetaDescription, regenerateMetaTitle } from '@/lib/
 import { renderArticleHtml } from '@/lib/html/render';
 import { rehostImage } from '@/lib/rehost/blob';
 import { detectAndEmitFaqSchema } from '@/lib/seo/faq-schema';
+import { buildArticleJsonLd, detectHowTo, injectJsonLd, type SchemaEmission } from '@/lib/seo/jsonld';
+import { runReadability } from '@/lib/qa/readability';
 import type { ParsedDoc } from '@/lib/db/types';
 
 // Budget cap. If a single run costs more than $0.50 worth of model + bytes,
@@ -125,6 +127,28 @@ export const processArticle = inngest.createFunction(
         return doc;
       });
 
+      // 3b. Readability QA (retext: Flesch + passive + inclusive + grade level)
+      await step.run('readability-qa', async () => {
+        const stepId = await startStep('readability-qa', 25);
+        const findings = await runReadability(parsed);
+        await db.from('qa_checks').delete().eq('article_id', article_id).like('check_type', 'readability:%');
+        if (findings.length) {
+          await db.from('qa_checks').insert(
+            findings.map((f) => ({
+              article_id,
+              org_id,
+              check_type: f.check_type,
+              severity: f.severity,
+              title: f.title,
+              detail: f.detail,
+              data: f.data,
+            })),
+          );
+        }
+        const fails = findings.filter((f) => f.severity === 'fail').length;
+        await finishStep(stepId, `${fails} fail · ${findings.length} total`);
+      });
+
       // 4. Rule QA
       await step.run('rule-qa', async () => {
         const stepId = await startStep('rule-qa', 3);
@@ -227,12 +251,14 @@ export const processArticle = inngest.createFunction(
         return map;
       });
 
-      // 8. Render final HTML + inject FAQ JSON-LD if an FAQ section exists.
+      // 8. Render final HTML + inject FAQ + Article + (optional) HowTo JSON-LD.
       const finalHtml = await step.run('render-html', async () => {
         const stepId = await startStep('render-html', 8);
-        const renderedHtml = renderArticleHtml(parsed, { rehostMap });
-        const faq = detectAndEmitFaqSchema(renderedHtml);
-        const html = faq.html;
+        let html = renderArticleHtml(parsed, { rehostMap });
+
+        // FAQ first (existing path — inserts before the FAQ heading).
+        const faq = detectAndEmitFaqSchema(html);
+        html = faq.html;
         if (faq.inserted) {
           await db.from('qa_checks').insert({
             article_id,
@@ -244,6 +270,42 @@ export const processArticle = inngest.createFunction(
             data: { questions: faq.questions },
           });
         }
+
+        // Article (always) + HowTo (when detected). Typed via schema-dts so
+        // missing required fields are tsc errors, not Search Console errors.
+        const blocks: SchemaEmission[] = [];
+        const article = buildArticleJsonLd({
+          headline: parsed.headings.find((h) => h.level === 1)?.text ?? parsed.title,
+          description: parsed.meta_description,
+          publisherName: 'Andar',
+        });
+        blocks.push(article);
+        if (article.validation_issues.length) {
+          await db.from('qa_checks').insert({
+            article_id,
+            org_id,
+            check_type: 'seo:article_schema',
+            severity: 'warning',
+            title: `Article JSON-LD missing ${article.validation_issues.length} required field(s)`,
+            detail: `Will emit but Google rich-result will be ineligible until: ${article.validation_issues.join('; ')}`,
+            data: { issues: article.validation_issues },
+            fix_available: false,
+          });
+        }
+        const howTo = detectHowTo(html);
+        if (howTo) {
+          blocks.push(howTo);
+          await db.from('qa_checks').insert({
+            article_id,
+            org_id,
+            check_type: 'seo:howto_schema',
+            severity: 'pass',
+            title: `Detected HowTo with ${(howTo.jsonld as { step?: unknown[] }).step?.length ?? 0} steps`,
+            detail: 'schema.org/HowTo block emitted. Eligible for HowTo rich result on SERP.',
+          });
+        }
+        html = injectJsonLd(html, blocks);
+
         await db.from('articles').update({ article_html: html, cost_cents: totalCost }).eq('id', article_id);
         await db.from('article_versions').insert({
           article_id,

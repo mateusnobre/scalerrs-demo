@@ -11,7 +11,10 @@ import { dirname, join } from 'node:path';
 import { extractDocId, fetchDocHtml } from '../src/lib/google/docs';
 import { parseGoogleDocHtml } from '../src/lib/google/parser';
 import { runRuleChecks } from '../src/lib/qa/rules';
+import { runReadability } from '../src/lib/qa/readability';
 import { renderArticleHtml } from '../src/lib/html/render';
+import { buildArticleJsonLd, detectHowTo, injectJsonLd, type SchemaEmission } from '../src/lib/seo/jsonld';
+import { detectAndEmitFaqSchema } from '../src/lib/seo/faq-schema';
 
 async function main() {
   const arg = process.argv[2];
@@ -30,12 +33,30 @@ async function main() {
   console.log(`  parsed: ${doc.images.length} images, ${doc.links.length} links, ${doc.word_count} words`);
 
   const rules = runRuleChecks(doc);
-  const fail = rules.filter((r) => r.severity === 'fail').length;
-  const warn = rules.filter((r) => r.severity === 'warning').length;
-  const pass = rules.filter((r) => r.severity === 'pass').length;
-  console.log(`  QA: ${fail} fail, ${warn} warn, ${pass} pass`);
+  const readability = await runReadability(doc);
+  const allQa = [...rules, ...readability];
+  const fail = allQa.filter((r) => r.severity === 'fail').length;
+  const warn = allQa.filter((r) => r.severity === 'warning').length;
+  const pass = allQa.filter((r) => r.severity === 'pass').length;
+  console.log(`  QA: ${fail} fail, ${warn} warn, ${pass} pass (rules + readability)`);
 
-  const html = renderArticleHtml(doc);
+  let html = renderArticleHtml(doc);
+  const faq = detectAndEmitFaqSchema(html);
+  html = faq.html;
+  if (faq.inserted) console.log(`  FAQ JSON-LD: ${faq.questions} Q&A injected`);
+
+  const blocks: SchemaEmission[] = [];
+  blocks.push(buildArticleJsonLd({
+    headline: doc.headings.find((h) => h.level === 1)?.text ?? doc.title,
+    description: doc.meta_description,
+    publisherName: 'Andar',
+  }));
+  const howTo = detectHowTo(html);
+  if (howTo) {
+    blocks.push(howTo);
+    console.log(`  HowTo JSON-LD: ${(howTo.jsonld as { step?: unknown[] }).step?.length ?? 0} steps`);
+  }
+  html = injectJsonLd(html, blocks);
 
   const slug = (slugArg ?? (doc.headings.find((h) => h.level === 1)?.text ?? 'article'))
     .toLowerCase()
@@ -72,7 +93,8 @@ ${html}
         image_count: doc.images.length,
         link_count: doc.links.length,
         product_links: doc.links.filter((l) => l.is_product).length,
-        qa: rules,
+        qa_rules: rules,
+        qa_readability: readability,
       },
       null,
       2,
