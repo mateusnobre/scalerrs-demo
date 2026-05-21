@@ -1,15 +1,28 @@
 import { generateObject, generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { z } from 'zod';
 import type { ParsedDoc, ParsedImage } from '@/lib/db/types';
 
-// Model selection: route through AI Gateway when available, else direct
-// Anthropic provider. Keeping this central so swapping models is one line.
+// Model selection priority:
+//   1. OpenRouter — single key, multi-provider, automatic failover.
+//   2. Vercel AI Gateway — same pattern, Vercel-native.
+//   3. Direct Anthropic provider — fallback when nothing else is set.
+// Model ID is overridable via env so we can swap Opus ↔ Sonnet ↔ Haiku
+// without redeploying.
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'anthropic/claude-opus-4.7';
+const GATEWAY_MODEL = process.env.AI_GATEWAY_MODEL ?? 'anthropic/claude-opus-4-7';
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-opus-4-7';
+
 function model() {
-  if (process.env.AI_GATEWAY_API_KEY) {
-    return 'anthropic/claude-opus-4-7' as const;
+  if (process.env.OPENROUTER_API_KEY) {
+    const openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
+    return openrouter(OPENROUTER_MODEL);
   }
-  return anthropic('claude-opus-4-7');
+  if (process.env.AI_GATEWAY_API_KEY) {
+    return GATEWAY_MODEL;
+  }
+  return anthropic(ANTHROPIC_MODEL);
 }
 
 const CriticSchema = z.object({
