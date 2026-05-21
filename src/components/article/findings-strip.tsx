@@ -119,14 +119,15 @@ function targetSelector(check_type: string): string | null {
   )
     return 'a.qa-mark-fail-link, .qa-mark-fail-block';
   if (check_type.startsWith('readability:')) {
-    // Only passive / inclusive / sentence-spacing carry inline marks; the
-    // others (flesch_score, reading_level) are global metrics.
+    if (check_type === 'readability:reading_level')
+      return 'p.qa-mark-warn-block, li.qa-mark-warn-block';
     if (
       check_type === 'readability:passive_voice' ||
       check_type === 'readability:inclusive_language' ||
       check_type === 'readability:sentence_spacing'
     )
       return 'mark.qa-mark-warn';
+    // flesch_score remains a global metric — no inline target.
     return null;
   }
   return null;

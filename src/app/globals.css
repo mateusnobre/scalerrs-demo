@@ -96,6 +96,23 @@ html, body {
 }
 .qa-annotated mark.qa-mark:hover { filter: brightness(1.25); }
 
+/* Block-level warn mark — used when the offending finding is sentence-
+   or paragraph-level (e.g. readability:reading_level). */
+.qa-annotated p.qa-mark-warn-block,
+.qa-annotated li.qa-mark-warn-block {
+  background: rgba(251, 191, 36, 0.08);
+  border-left: 3px solid rgba(251, 191, 36, 0.65);
+  padding: 6px 10px;
+  margin: 6px 0;
+  border-radius: 0 4px 4px 0;
+  cursor: help;
+}
+.qa-annotated.hide-warn p.qa-mark-warn-block,
+.qa-annotated.hide-warn li.qa-mark-warn-block {
+  background: transparent;
+  border-left-color: transparent;
+}
+
 /* Flash ring — fired when the Findings strip jumps to a mark. */
 @keyframes qa-flash {
   0%   { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0); }
