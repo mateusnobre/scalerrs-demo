@@ -187,6 +187,7 @@ export function ArticleDetail({
             initialMetaDescription={visualizer.initialMetaDescription}
             currentMetaTitle={article.meta_title}
             currentMetaDescription={article.meta_description}
+            checks={checks}
           />
         </TabsContent>
         <TabsContent value="qa">
@@ -199,7 +200,11 @@ export function ArticleDetail({
           <LinksTab suggestions={suggestions} />
         </TabsContent>
         <TabsContent value="preview">
-          <PreviewTab cleanHtml={article.article_html} annotatedHtml={visualizer.html} />
+          <PreviewTab
+            cleanHtml={article.article_html}
+            annotatedHtml={visualizer.html}
+            checks={checks}
+          />
         </TabsContent>
         <TabsContent value="html">
           <HtmlTab

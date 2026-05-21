@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
+import { FindingsStrip } from '../findings-strip';
+import type { QaCheck } from '@/lib/db/types';
 
 /**
  * Preview tab — renders the article body with QA annotations overlaid by
@@ -16,9 +18,11 @@ import { Eye, EyeOff } from 'lucide-react';
 export function PreviewTab({
   cleanHtml,
   annotatedHtml,
+  checks,
 }: {
   cleanHtml: string | null;
   annotatedHtml: string | null;
+  checks: QaCheck[];
 }) {
   const [showAnnotations, setShowAnnotations] = useState(true);
   const html = showAnnotations ? annotatedHtml : cleanHtml;
@@ -27,7 +31,7 @@ export function PreviewTab({
       <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
         <CardDescription>
           {showAnnotations
-            ? 'Hover any red or amber highlight for WHAT / WHY / FIX detail.'
+            ? 'Findings strip above lists every issue. Body marks show the localized ones. Hover any pill or red/amber mark for WHAT / WHY / FIX.'
             : 'Clean preview — the exact HTML WordPress will publish.'}
         </CardDescription>
         <Button
@@ -47,6 +51,7 @@ export function PreviewTab({
         </Button>
       </CardHeader>
       <CardContent className={`prose-article ${showAnnotations ? 'qa-annotated' : ''} p-6 pt-0`}>
+        {showAnnotations && <FindingsStrip checks={checks} />}
         {html ? (
           <div dangerouslySetInnerHTML={{ __html: html }} />
         ) : (

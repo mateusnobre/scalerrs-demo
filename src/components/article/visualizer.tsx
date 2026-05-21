@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { FindingsStrip } from './findings-strip';
+import type { QaCheck } from '@/lib/db/types';
 
 interface VisualizerProps {
   html: string;
@@ -13,6 +15,7 @@ interface VisualizerProps {
   initialMetaDescription: string | null;
   currentMetaTitle: string | null;
   currentMetaDescription: string | null;
+  checks: QaCheck[];
 }
 
 export function Visualizer(props: VisualizerProps) {
@@ -81,6 +84,8 @@ export function Visualizer(props: VisualizerProps) {
             )}
           </div>
         )}
+
+        <FindingsStrip checks={props.checks} />
 
         <div
           className={containerClass}
