@@ -121,7 +121,39 @@
             "alt": "modern leather case"
           }
         ]
-      }
+      },
+      "fix_available": true,
+      "fix_kind": "rewrite_placeholder_alts"
+    },
+    {
+      "check_type": "image_alt_accessibility",
+      "severity": "fail",
+      "title": "3 alt text(s) fail WCAG 1.1.1",
+      "detail": "[1] \"leather case\" — only 2 descriptive word(s) — too generic; missing the article's subject \"collars\" — alt should describe the dog collar, not a generic noun · [2] \"leather casing\" — only 2 descriptive word(s) — too generic; missing the article's subject \"collars\" — alt should describe the dog collar, not a generic noun · [3] \"modern leather case\" — missing the article's subject \"collars\" — alt should describe the dog collar, not a generic noun",
+      "data": {
+        "issues": [
+          {
+            "alt": "leather case",
+            "reason": "only 2 descriptive word(s) — too generic; missing the article's subject \"collars\" — alt should describe the dog collar, not a generic noun"
+          },
+          {
+            "alt": "leather casing",
+            "reason": "only 2 descriptive word(s) — too generic; missing the article's subject \"collars\" — alt should describe the dog collar, not a generic noun"
+          },
+          {
+            "alt": "modern leather case",
+            "reason": "missing the article's subject \"collars\" — alt should describe the dog collar, not a generic noun"
+          }
+        ],
+        "title_tokens": [
+          "leather",
+          "dog",
+          "collars",
+          "untitled"
+        ]
+      },
+      "fix_available": true,
+      "fix_kind": "rewrite_placeholder_alts"
     },
     {
       "check_type": "word_count",

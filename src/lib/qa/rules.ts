@@ -122,7 +122,72 @@ export function runRuleChecks(doc: ParsedDoc): RuleResult[] {
         'The writer left "IMAGE N. Alt tag: ..." text in the doc instead of embedding real images. ' +
         'These need to be replaced with actual <img> elements before publishing.',
       data: { placeholders: placeholderMatches.map((m) => ({ marker: m[0], alt: m[1] })) },
+      fix_available: true,
+      fix_kind: 'rewrite_placeholder_alts',
     });
+
+    // Deeper a11y check: even if the writer embeds a real image, the alt
+    // text inside the marker is often:
+    //   (1) topically wrong — e.g. "leather case" on a dog-collar article
+    //   (2) too generic — under 3 descriptive words, or pure noun ("image")
+    // Both are WCAG 1.1.1 failures. Surface as a separate check so the
+    // editor sees the real accessibility issue, not just the placeholder.
+    // For "primary noun" we use the H1 only — meta titles often end with a CTA
+    // ("…In Style!") that hijacks the last-token heuristic.
+    const h1Text = doc.headings.find((h) => h.level === 1)?.text ?? doc.title ?? '';
+    const h1Tokens = tokenize(h1Text).filter((t) => t.length > 2 && !STOPWORDS.has(t));
+    // Topic-overlap set uses H1 + plain title (no meta_title) — broader pool
+    // for the "≥2 overlap words" check.
+    const titleTokens = [
+      ...h1Tokens,
+      ...tokenize(doc.title ?? '').filter((t) => t.length > 2 && !STOPWORDS.has(t)),
+    ];
+    const titleSet = new Set(titleTokens);
+    const primary = h1Tokens[h1Tokens.length - 1] ?? '';
+    const primarySingular = primary.replace(/s$/, '');
+    const a11yIssues: { alt: string; reason: string }[] = [];
+    const generics = new Set([
+      'image', 'photo', 'picture', 'pic', 'product', 'item', 'thing', 'case', 'object',
+    ]);
+    for (const m of placeholderMatches) {
+      const alt = (m[1] ?? '').trim();
+      const altTokens = tokenize(alt);
+      const meaningful = altTokens.filter((t) => t.length > 2 && !STOPWORDS.has(t));
+      const overlap = meaningful.filter((t) => titleSet.has(t));
+      const allGeneric = meaningful.length > 0 && meaningful.every((t) => generics.has(t));
+      const hasPrimary =
+        !primary ||
+        meaningful.some((t) => t === primary || t === primarySingular);
+      const reasons: string[] = [];
+      if (meaningful.length < 3) {
+        reasons.push(`only ${meaningful.length} descriptive word(s) — too generic`);
+      }
+      if (!hasPrimary && primary) {
+        reasons.push(
+          `missing the article's subject "${primary}" — alt should describe the dog collar, not a generic noun`,
+        );
+      } else if (overlap.length < 2 && titleSet.size > 1) {
+        reasons.push(
+          `only ${overlap.length} word(s) overlap with the article topic (need ≥2 of: ${[...titleSet].slice(0, 6).join(', ')})`,
+        );
+      }
+      if (allGeneric) reasons.push('all words are generic placeholders (image / case / item / etc.)');
+      if (reasons.length) a11yIssues.push({ alt, reason: reasons.join('; ') });
+    }
+    if (a11yIssues.length > 0) {
+      results.push({
+        check_type: 'image_alt_accessibility',
+        severity: 'fail',
+        title: `${a11yIssues.length} alt text(s) fail WCAG 1.1.1`,
+        detail:
+          a11yIssues
+            .map((i, idx) => `[${idx + 1}] "${i.alt}" — ${i.reason}`)
+            .join(' · '),
+        data: { issues: a11yIssues, title_tokens: titleTokens.slice(0, 10) },
+        fix_available: true,
+        fix_kind: 'rewrite_placeholder_alts',
+      });
+    }
   }
 
   // Word count
@@ -135,6 +200,18 @@ export function runRuleChecks(doc: ParsedDoc): RuleResult[] {
   });
 
   return results;
+}
+
+const STOPWORDS = new Set([
+  'a','an','and','are','as','at','be','best','but','by','for','from','had','has','have','he','her','his','i','in','is','it','its','my','of','on','or','our','she','that','the','their','them','they','this','to','was','we','were','will','with','you','your',
+]);
+
+function tokenize(s: string): string[] {
+  return (s ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
 }
 
 function safeHost(src: string): string {
