@@ -43,14 +43,14 @@ export default function LoginPage() {
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Email</label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="andar@demo.com" />
+            <Input data-testid="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="andar@demo.com" />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Password</label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+            <Input data-testid="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
           <div className="flex gap-2 pt-2">
-            <Button onClick={() => handle('signin')} disabled={loading} className="flex-1">
+            <Button data-testid="login-submit" onClick={() => handle('signin')} disabled={loading} className="flex-1">
               Sign in
             </Button>
             <Button variant="outline" onClick={() => handle('signup')} disabled={loading} className="flex-1">

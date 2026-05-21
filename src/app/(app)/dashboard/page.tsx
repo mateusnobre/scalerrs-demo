@@ -50,9 +50,9 @@ export default async function Dashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile icon={FileText} label="Articles" value={articles.length} hint="In this org" />
-        <StatTile icon={Network} label="Sitemaps" value={sitemapCount} hint="Ingested for internal linking" />
-        <StatTile icon={Activity} label="Crawled URLs" value={urlCount} hint="Available for link suggestions" />
+        <StatTile testId="stat-articles" icon={FileText} label="Articles" value={articles.length} hint="In this org" />
+        <StatTile testId="stat-sitemaps" icon={Network} label="Sitemaps" value={sitemapCount} hint="Ingested for internal linking" />
+        <StatTile testId="stat-crawled-urls" icon={Activity} label="Crawled URLs" value={urlCount} hint="Available for link suggestions" />
       </div>
 
       <Card>
@@ -62,7 +62,7 @@ export default async function Dashboard() {
         </CardHeader>
         <CardContent className="p-0">
           {!articles.length && (
-            <div className="px-6 py-16 text-center">
+            <div data-qa="empty-state" className="px-6 py-16 text-center">
               <p className="text-sm text-[var(--fg-2)]">No articles yet.</p>
               <Button asChild variant="outline" size="sm" className="mt-3">
                 <Link href="/articles/new">Process your first Google Doc →</Link>
@@ -101,18 +101,25 @@ function StatTile({
   label,
   value,
   hint,
+  testId,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: number;
   hint: string;
+  testId?: string;
 }) {
   return (
     <Card>
       <CardContent className="flex items-start justify-between p-4">
         <div>
           <p className="text-[11px] uppercase tracking-widest text-[var(--fg-3)]">{label}</p>
-          <p className="mono mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+          <p
+            data-qa={testId}
+            className="mono mt-1 text-2xl font-semibold tabular-nums"
+          >
+            {value}
+          </p>
           <p className="mt-1 text-[11px] text-[var(--fg-2)]">{hint}</p>
         </div>
         <Icon className="size-4 text-[var(--fg-3)]" />
