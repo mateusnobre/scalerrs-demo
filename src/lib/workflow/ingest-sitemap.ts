@@ -57,13 +57,44 @@ async function markReady(sitemap_id: string) {
   await db.from('sitemaps').update({ status: 'ready' }).eq('id', sitemap_id);
 }
 
+async function markFailed(sitemap_id: string, reason: string) {
+  'use step';
+  const db = createServiceClient();
+  await db
+    .from('sitemaps')
+    .update({ status: 'failed', fetched_at: new Date().toISOString() })
+    .eq('id', sitemap_id);
+  // Log the reason into a sitemap_url-shaped error row so the user sees it.
+  // (We don't have a sitemap-level error column; reusing sitemap_urls with a
+  //  synthetic url + fetch_error keeps the error visible on the detail page.)
+  await db.from('sitemap_urls').upsert(
+    {
+      sitemap_id,
+      org_id: '00000000-0000-0000-0000-000000000000',
+      url: `error://${sitemap_id}`,
+      title: 'Sitemap ingest failed',
+      fetch_error: reason.slice(0, 500),
+      index_state: 'fetch_failed',
+      http_status: 0,
+      last_fetched_at: new Date().toISOString(),
+    },
+    { onConflict: 'org_id,url' },
+  );
+}
+
 export async function ingestSitemap(sitemap_id: string, org_id: string, url: string) {
   'use workflow';
-  await markFetching(sitemap_id);
-  const urls = await fetchAndCount(sitemap_id, url);
-  for (let i = 0; i < urls.length; i += PER_BATCH) {
-    await crawlBatch(sitemap_id, org_id, urls.slice(i, i + PER_BATCH));
+  try {
+    await markFetching(sitemap_id);
+    const urls = await fetchAndCount(sitemap_id, url);
+    for (let i = 0; i < urls.length; i += PER_BATCH) {
+      await crawlBatch(sitemap_id, org_id, urls.slice(i, i + PER_BATCH));
+    }
+    await markReady(sitemap_id);
+    return { sitemap_id, crawled: urls.length };
+  } catch (err) {
+    const reason = (err as Error).message ?? String(err);
+    await markFailed(sitemap_id, reason);
+    throw err;
   }
-  await markReady(sitemap_id);
-  return { sitemap_id, crawled: urls.length };
 }

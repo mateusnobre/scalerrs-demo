@@ -8,10 +8,26 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { fmtRelative } from '@/lib/utils';
 
+function normaliseSitemapUrl(raw: string): string {
+  // Trim, add https:// if no scheme, lowercase the hostname, ensure parseable.
+  let s = raw.trim();
+  if (!/^https?:\/\//i.test(s)) s = `https://${s}`;
+  const u = new URL(s); // throws on garbage
+  u.hostname = u.hostname.toLowerCase();
+  return u.toString();
+}
+
 async function startIngest(formData: FormData) {
   'use server';
-  const url = String(formData.get('url') ?? '').trim();
-  if (!url) return;
+  const raw = String(formData.get('url') ?? '').trim();
+  if (!raw) return;
+  let url: string;
+  try {
+    url = normaliseSitemapUrl(raw);
+  } catch {
+    throw new Error(`Invalid sitemap URL: ${raw}`);
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('unauthenticated');
